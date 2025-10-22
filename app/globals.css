@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
   background: #f9fafb;
@@ -27,7 +29,6 @@ body {
   animation: slide-in 0.3s ease-out;
 }
 
-/* Add this to your globals.css or equivalent */
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);
