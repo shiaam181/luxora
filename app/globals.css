@@ -1,44 +1,50 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  background: #f9fafb;
-  color: #1f2937;
-  font-family: Arial, Helvetica, sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
+@layer base {
+  body {
+    background: #f9fafb;
+    color: #1f2937;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
   }
-  to {
-    transform: translateX(0);
-    opacity: 1;
+
+  * {
+    box-sizing: border-box;
   }
 }
 
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
+@layer utilities {
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
   }
-  10%, 30%, 50%, 70%, 90% {
-    transform: translateX(-5px);
-  }
-  20%, 40%, 60%, 80% {
-    transform: translateX(5px);
-  }
-}
 
-.animate-shake {
-  animation: shake 0.5s;
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(5px);
+    }
+  }
+
+  .animate-shake {
+    animation: shake 0.5s;
+  }
 }
