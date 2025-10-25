@@ -11,24 +11,11 @@ import Image from 'next/image';
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
-  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
-  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
-  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
+  serviceId: "service_7opoj8t", 
+  templateId:"template_cj71v5u",
+  publicKey:"wZ5cFDnM782fzRIg0"
 };
 
-// Log config on page load (client-side only)
-if (typeof window !== 'undefined') {
-  console.log('🌍 PAGE LOADED - Environment Variables Check:');
-  console.log('📧 EMAILJS_CONFIG:', {
-    serviceId: EMAILJS_CONFIG.serviceId || '❌ EMPTY',
-    templateId: EMAILJS_CONFIG.templateId || '❌ EMPTY',
-    publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set (' + EMAILJS_CONFIG.publicKey.substring(0, 8) + '...)' : '❌ EMPTY'
-  });
-  console.log('🔍 Raw process.env values:');
-  console.log('- NEXT_PUBLIC_EMAILJS_SERVICE_ID:', process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '❌ UNDEFINED');
-  console.log('- NEXT_PUBLIC_EMAILJS_TEMPLATE_ID:', process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '❌ UNDEFINED');
-  console.log('- NEXT_PUBLIC_EMAILJS_PUBLIC_KEY:', process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY ? '✅ Set' : '❌ UNDEFINED');
-}
 
 // Debug: Log config on mount (remove after fixing)
 if (typeof window !== 'undefined') {
