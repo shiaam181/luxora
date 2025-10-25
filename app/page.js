@@ -749,8 +749,19 @@ const updateCategory = async (oldName, newName) => {
   
   const sendOrderEmail = async (order, orderData) => {
   console.log('📧 ===== EMAIL SENDING START =====');
-  console.log('📧 Config:', EMAILJS_CONFIG);
-  console.log('📧 Order data:', orderData);
+  
+  // ✅ Check if env variables exist
+  if (!EMAILJS_CONFIG.serviceId || !EMAILJS_CONFIG.templateId || !EMAILJS_CONFIG.publicKey) {
+    console.error('❌ EmailJS config missing:', EMAILJS_CONFIG);
+    toast.error('Email configuration error');
+    return false;
+  }
+  
+  console.log('📧 Config:', {
+    serviceId: EMAILJS_CONFIG.serviceId,
+    templateId: EMAILJS_CONFIG.templateId,
+    publicKey: EMAILJS_CONFIG.publicKey?.substring(0, 5) + '...'
+  });
   
   try {
     // Step 1: Load EmailJS if not already loaded
@@ -780,8 +791,9 @@ const updateCategory = async (oldName, newName) => {
     }
     
     // Step 2: Initialize EmailJS
-    if (window.emailjs && !window.emailjs.init) {
+    if (!window.emailjs || !window.emailjs.init) {
       console.error('❌ EmailJS loaded but init function missing');
+      toast.error('Email service initialization failed');
       return false;
     }
     
@@ -803,7 +815,6 @@ const updateCategory = async (oldName, newName) => {
       delivery_address: `${orderData.address}, ${orderData.city}, ${orderData.state} - ${orderData.pincode}`,
       phone: orderData.phone,
       order_date: new Date(order.date).toLocaleDateString('en-IN'),
-      // Add more fields if your template requires them
     };
     
     console.log('📧 Email params:', params);
@@ -817,12 +828,9 @@ const updateCategory = async (oldName, newName) => {
       params
     );
     
-    console.log('✅ Email sent successfully!', response);
-    
-    // Show success toast
+     console.log('✅ Email sent successfully!', response);
     toast.success('Order confirmation email sent!');
-    
-    return true;
+     return true;
     
   } catch (error) {
     console.error('❌ Email error:', {
@@ -833,8 +841,7 @@ const updateCategory = async (oldName, newName) => {
     });
     
     // Show error toast but don't fail the order
-    toast.error('Failed to send confirmation email, but order was placed successfully!');
-    
+     toast.error('Failed to send confirmation email, but order was placed successfully!');
     return false;
   }
 };
