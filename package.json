@@ -1,7 +1,6 @@
 {
-  "name": "kids-toy-store",
-  "version": "0.1.0",
-  "private": true,
+   "name": "kids-toy-store",
+   "version": "0.1.0",
   "scripts": {
    "dev": "next dev",
     "build": "next build",

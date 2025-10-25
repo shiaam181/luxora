@@ -19,6 +19,80 @@ const EMAILJS_CONFIG = {
 
 
 // Sample Products Data
+
+// Validation Helpers
+const validateImageDimensions = (file) => {
+  return new Promise((resolve) => {
+    // Skip validation if file is too small or not an image
+    if (!file.type.startsWith('image/')) {
+      resolve(false);
+      return;
+    }
+
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      // Accept any valid image dimensions
+      resolve(img.width > 0 && img.height > 0);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(false);
+    };
+    
+    img.src = objectUrl;
+  });
+};
+
+const validateCategoryName = (name, existingCategories) => {
+  if (!name || typeof name !== 'string') {
+    return { valid: false, error: 'Category name is required' };
+  }
+  
+  const trimmed = name.trim();
+  
+  if (trimmed.length === 0) {
+    return { valid: false, error: 'Category name cannot be empty' };
+  }
+  
+  if (trimmed.length < 2) {
+    return { valid: false, error: 'Category name must be at least 2 characters' };
+  }
+  
+  if (trimmed.length > 50) {
+    return { valid: false, error: 'Category name must be less than 50 characters' };
+  }
+  
+  if (!/^[a-zA-Z0-9\s&-]+$/.test(trimmed)) {
+    return { valid: false, error: 'Category name contains invalid characters' };
+  }
+  
+  if (existingCategories.some(cat => cat.toLowerCase() === trimmed.toLowerCase())) {
+    return { valid: false, error: 'Category already exists' };
+  }
+  
+  return { valid: true, trimmed };
+};
+
+// Debounced Search Hook
+const useDebouncedSearch = (searchQuery, delay = 300) => {
+  const [debouncedQuery, setDebouncedQuery] = React.useState(searchQuery);
+  
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, delay);
+    
+    return () => clearTimeout(handler);
+  }, [searchQuery, delay]);
+  
+  return debouncedQuery;
+};
+
+
 const INITIAL_PRODUCTS = [
   {
     id: 1,
@@ -185,7 +259,9 @@ const useStore = () => {
 const StoreProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['Ethnic', 'Casual', 'Western', 'Jewelry', 'Accessories', 'Footwear']);
+  // ✅ Load cart immediately during initialization
   const [cart, setCart] = useState([]);
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isFirstCartAdd, setIsFirstCartAdd] = useState(true);
   const [wishlist, setWishlist] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -197,13 +273,20 @@ const StoreProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
 
-  React.useEffect(() => {
-  if (typeof window !== 'undefined' && cart.length > 0) {
-    localStorage.setItem('luxora_cart', JSON.stringify(cart));
-  } else if (cart.length === 0) {
-    localStorage.removeItem('luxora_cart');
+    // Save cart to localStorage whenever it changes
+React.useEffect(() => {
+  if (!isCartLoaded) return; // Don't save before initial load
+  
+  if (typeof window !== 'undefined') {
+    if (cart.length > 0) {
+      localStorage.setItem('luxora_cart', JSON.stringify(cart));
+      console.log('💾 Cart saved:', cart.length, 'items');
+    } else {
+      localStorage.removeItem('luxora_cart');
+      console.log('🗑️ Cart cleared');
+    }
   }
-}, [cart]);
+}, [cart, isCartLoaded]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -216,6 +299,31 @@ const StoreProvider = ({ children }) => {
     'WELCOME20': 20,
     'KIDS15': 15
   });
+
+  // ✅ Load cart from localStorage on mount (client-side only)
+React.useEffect(() => {
+  if (typeof window !== 'undefined') {
+    try {
+      const savedCart = localStorage.getItem('luxora_cart');
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        console.log('🚀 CART LOADED:', parsed.length, 'items');
+        setCart(parsed);
+        
+        if (parsed.length > 0) {
+          setTimeout(() => {
+            toast.success(`🛒 ${parsed.length} item(s) restored to your cart!`);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Cart load error:', error);
+      localStorage.removeItem('luxora_cart');
+    } finally {
+      setIsCartLoaded(true);
+    }
+  }
+}, []);
 
   // 🔥 REPLACE ENTIRE useEffect WITH THIS:
 React.useEffect(() => {
@@ -280,15 +388,9 @@ const loadDataFromFirebase = async () => {
     const unsubOrders = subscribe('orders', (data) => {
       console.log('Orders updated in real-time!');
       setOrders(data);
-    });
+     });
 
-    // Load cart from localStorage
-    if (typeof window !== 'undefined') {
-      const savedCart = localStorage.getItem('luxora_cart');
-      if (savedCart) setCart(JSON.parse(savedCart));
-    }
-
-    return () => {
+     return () => {
       unsubProducts();
       unsubOrders();
     };
@@ -417,15 +519,29 @@ const seedInitialProducts = async () => {
 
   const adminLogin = async (email, password) => {
   try {
-    await loginAdmin(email, password);
-    setIsAdminLoggedIn(true);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('isAdminLoggedIn', 'true');
+    console.log('🔐 Admin login attempt:', email);
+    
+    // Hardcoded admin credentials for now
+    const ADMIN_EMAIL = 'admin@luxora.com';
+    const ADMIN_PASSWORD = 'admin123';
+    
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      console.log('✅ Login successful');
+      setIsAdminLoggedIn(true);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        localStorage.setItem('forceAdminPage', 'true');
+      }
+      
+      return true;
+    } else {
+      console.log('❌ Invalid credentials');
+      return false;
     }
-    return true;
   } catch (error) {
-    console.error('Admin login error:', error);
-    throw error;
+    console.error('Login error:', error);
+    return false;
   }
 };
 
@@ -632,49 +748,96 @@ const updateCategory = async (oldName, newName) => {
 };
   
   const sendOrderEmail = async (order, orderData) => {
-    console.log('📧 Starting email send...');
-    
-    try {
-      if (!window.emailjs) {
+  console.log('📧 ===== EMAIL SENDING START =====');
+  console.log('📧 Config:', EMAILJS_CONFIG);
+  console.log('📧 Order data:', orderData);
+  
+  try {
+    // Step 1: Load EmailJS if not already loaded
+    if (!window.emailjs) {
+      console.log('📧 Loading EmailJS script...');
+      
+      await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        document.head.appendChild(script);
+        script.async = true;
         
-        await new Promise((resolve) => { script.onload = resolve; });
-        window.emailjs.init(EMAILJS_CONFIG.publicKey);
-        console.log('✅ EmailJS loaded');
-      }
-
-      const itemsList = order.items.map(item => 
-        `${item.name} x${item.quantity} - Rs.${item.price * item.quantity}`
-      ).join('\n');
-
-      const params = {
-        to_email: orderData.email,
-        to_name: orderData.fullName,
-        order_id: order.id,
-        order_total: `Rs.${orderData.total}`,
-        payment_method: orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
-        order_items: itemsList,
-        delivery_address: `${orderData.address}, ${orderData.city}, ${orderData.state} - ${orderData.pincode}`,
-        phone: orderData.phone
-      };
-
-      console.log('📧 Sending to:', params.to_email);
+        script.onload = () => {
+          console.log('✅ EmailJS script loaded');
+          resolve();
+        };
+        
+        script.onerror = () => {
+          console.error('❌ Failed to load EmailJS script');
+          reject(new Error('Failed to load EmailJS'));
+        };
+        
+        document.head.appendChild(script);
+      });
       
-      await window.emailjs.send(
-        EMAILJS_CONFIG.serviceId,
-        EMAILJS_CONFIG.templateId,
-        params
-      );
-      
-      console.log('✅ Email sent!');
-      return true;
-    } catch (error) {
-      console.error('❌ Error:', error);
+      // Wait a bit for script to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // Step 2: Initialize EmailJS
+    if (window.emailjs && !window.emailjs.init) {
+      console.error('❌ EmailJS loaded but init function missing');
       return false;
     }
-  };
+    
+    window.emailjs.init(EMAILJS_CONFIG.publicKey);
+    console.log('✅ EmailJS initialized');
+    
+    // Step 3: Prepare email parameters
+    const itemsList = order.items
+      .map(item => `${item.name} x${item.quantity} - Rs.${item.price * item.quantity}`)
+      .join('\n');
+    
+    const params = {
+      to_email: orderData.email,
+      to_name: orderData.fullName,
+      order_id: order.id,
+      order_total: `Rs.${orderData.total}`,
+      payment_method: orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
+      order_items: itemsList,
+      delivery_address: `${orderData.address}, ${orderData.city}, ${orderData.state} - ${orderData.pincode}`,
+      phone: orderData.phone,
+      order_date: new Date(order.date).toLocaleDateString('en-IN'),
+      // Add more fields if your template requires them
+    };
+    
+    console.log('📧 Email params:', params);
+    
+    // Step 4: Send email
+    console.log('📧 Sending email...');
+    
+    const response = await window.emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      params
+    );
+    
+    console.log('✅ Email sent successfully!', response);
+    
+    // Show success toast
+    toast.success('Order confirmation email sent!');
+    
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Email error:', {
+      message: error.message,
+      text: error.text,
+      status: error.status,
+      fullError: error
+    });
+    
+    // Show error toast but don't fail the order
+    toast.error('Failed to send confirmation email, but order was placed successfully!');
+    
+    return false;
+  }
+};
 
   const placeOrder = async (orderData) => {
   const newOrder = {
@@ -686,17 +849,24 @@ const updateCategory = async (oldName, newName) => {
   };
 
   try {
+    // Step 1: Create order in database
     const created = await create('orders', newOrder, String(newOrder.id));
     
     if (created) {
+      // Step 2: Update local state
       setOrders(prev => [created, ...prev]);
       
-      await sendOrderEmail(newOrder, orderData);
+      // Step 3: Send email (don't await - send in background)
+      sendOrderEmail(newOrder, orderData).catch(err => {
+        console.error('Email sending failed:', err);
+        // Order is still placed, just email failed
+      });
       
       return newOrder.id;
     }
   } catch (error) {
     console.error('Error placing order:', error);
+    throw error;
   }
   
   return null;
@@ -708,16 +878,16 @@ const updateCategory = async (oldName, newName) => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <StoreContext.Provider value={{
-      products, setProducts, cart, wishlist, orders, recentlyViewed, compareList, addToCart, removeFromCart, 
-      updateQuantity, toggleWishlist, isInWishlist, cartTotal, cartCount, clearCart, 
-      moveWishlistToCart, addToRecentlyViewed, toggleCompare, isInCompare, 
-      applyCoupon, removeCoupon, couponCode, discount, discountAmount, cartSubtotal,
-      placeOrder, isAdminLoggedIn, adminLogin, adminLogout, addProduct, updateProduct, 
-      deleteProduct, updateOrderStatus, coupons, addCoupon, deleteCoupon,
-      categories, addCategory, deleteCategory, updateCategory, 
-      isFirstCartAdd, setIsFirstCartAdd, loading
-    }}>
+  <StoreContext.Provider value={{
+    products, setProducts, cart, isCartLoaded, wishlist, orders, recentlyViewed, compareList, addToCart, removeFromCart, 
+    updateQuantity, toggleWishlist, isInWishlist, cartTotal, cartCount, clearCart, 
+    moveWishlistToCart, addToRecentlyViewed, toggleCompare, isInCompare, 
+    applyCoupon, removeCoupon, couponCode, discount, discountAmount, cartSubtotal,
+    placeOrder, isAdminLoggedIn, adminLogin, adminLogout, addProduct, updateProduct, 
+    deleteProduct, updateOrderStatus, coupons, addCoupon, deleteCoupon,
+    categories, addCategory, deleteCategory, updateCategory, 
+    isFirstCartAdd, setIsFirstCartAdd, loading
+  }}>
       {children}
     </StoreContext.Provider>
   );
@@ -823,40 +993,68 @@ const Header = ({ setCurrentPage, setShowCart }) => {
 // Product Image Component
 const ProductImage = ({ image, images, name }) => {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  const [imageError, setImageError] = React.useState(false);
 
-  // If product has uploaded images array, show carousel
-  if (images && Array.isArray(images) && images.length > 0) {
+  // Safe images array with validation
+  const safeImages = React.useMemo(() => {
+    if (!images || !Array.isArray(images)) return [];
+    return images.filter(img => typeof img === 'string' && img.length > 0);
+  }, [images]);
+
+  // Safe index calculation
+  const safeIndex = Math.min(Math.max(0, currentImageIndex), safeImages.length - 1);
+
+  // Show uploaded images if available
+  if (safeImages.length > 0 && !imageError) {
     return (
-      <div className="relative w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden group">
-        <Image 
-          src={getOptimizedUrl(images[currentImageIndex], { width: 500, height: 500 })} 
-          alt={name} 
-          className="w-full h-full object-contain" 
-          width={500} 
-          height={500} 
-          
+      <div className="relative w-full h-48 bg-gray-100 overflow-hidden group">
+        <img 
+          src={safeImages[safeIndex]}
+          alt={`${name} - Image ${safeIndex + 1}`}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+          loading="lazy"
         />
         
-        {images.length > 1 && (
+        {/* Navigation arrows - only show if multiple images */}
+        {safeImages.length > 1 && (
           <>
             <button
-              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-opacity-70"
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setCurrentImageIndex((prev) => 
+                  prev === 0 ? safeImages.length - 1 : prev - 1
+                ); 
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-black/70"
+              aria-label="Previous image"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
+            
             <button
-              onClick={(e) => { e.stopPropagation(); setCurrentImageIndex((prev) => (prev + 1) % images.length); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-opacity-70"
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setCurrentImageIndex((prev) => 
+                  prev === safeImages.length - 1 ? 0 : prev + 1
+                ); 
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-black/70"
+              aria-label="Next image"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+            
+            {/* Dot indicators */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-  {Array.isArray(images) && images.map((_, idx) => (
+              {safeImages.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
-                  className={`w-2 h-2 rounded-full transition ${idx === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'}`}
+                  className={`w-2 h-2 rounded-full transition ${
+                    idx === safeIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                  aria-label={`Go to image ${idx + 1}`}
                 />
               ))}
             </div>
@@ -866,7 +1064,7 @@ const ProductImage = ({ image, images, name }) => {
     );
   }
 
-  // Fallback to emoji icons for old products
+  // Fallback to emoji icons for old products without images
   const imageMap = {
     necklace: '💍',
     kurti: '👗',
@@ -880,7 +1078,7 @@ const ProductImage = ({ image, images, name }) => {
 
   return (
     <div className="w-full h-48 bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-6xl">
-      {imageMap[image] || <Package className="w-16 h-16 text-purple-400" />}
+      {imageMap[image] || '📦'}
     </div>
   );
 };
@@ -1435,7 +1633,7 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
 
 // Cart Sidebar Component
 const CartSidebar = ({ show, onClose, setCurrentPage }) => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, cartSubtotal, discount, discountAmount, couponCode, applyCoupon, removeCoupon, setIsFirstCartAdd } = useStore();
+  const { cart, isCartLoaded, removeFromCart, updateQuantity, cartTotal, cartSubtotal, discount, discountAmount, couponCode, applyCoupon, removeCoupon, setIsFirstCartAdd } = useStore();
   
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
@@ -1476,12 +1674,17 @@ const CartSidebar = ({ show, onClose, setCurrentPage }) => {
             </button>
           </div>
 
-          {cart.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">Your cart is empty</p>
-            </div>
-          ) : (
+          {!isCartLoaded ? (
+  <div className="text-center py-12">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+    <p className="text-gray-600">Loading cart...</p>
+  </div>
+) : cart.length === 0 ? (
+  <div className="text-center py-12">
+    <ShoppingCart className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+    <p className="text-gray-600">Your cart is empty</p>
+  </div>
+) : (
             <>
               <div className="space-y-4 mb-6">
                 {cart.map(item => (
@@ -1771,6 +1974,7 @@ const ProductsPage = ({ setSelectedProduct, setShowCart }) => {
   const { products, categories: rawCategories } = useStore(); // Get categories from store
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedSearch(searchQuery);
   const [sortBy, setSortBy] = useState('featured');
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [showFilters, setShowFilters] = useState(false);
@@ -1781,8 +1985,8 @@ const ProductsPage = ({ setSelectedProduct, setShowCart }) => {
 
   let filteredProducts = products.filter(p => {
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                     p.description.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
     return matchesCategory && matchesSearch && matchesPrice;
   });
@@ -2614,37 +2818,53 @@ const CheckoutPage = ({ setCurrentPage }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-    if (!formData.email.trim()) {
-  newErrors.email = 'Email is required';
-} else {
-  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!EMAIL_REGEX.test(formData.email.trim())) {
+  const newErrors = {};
+  
+  // Name validation
+  if (!formData.fullName?.trim()) {
+    newErrors.fullName = 'Full name is required';
+  } else if (formData.fullName.trim().length < 2) {
+    newErrors.fullName = 'Name must be at least 2 characters';
+  }
+  
+  // Email validation (RFC 5322)
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  if (!formData.email?.trim()) {
+    newErrors.email = 'Email is required';
+  } else if (!emailRegex.test(formData.email.trim())) {
     newErrors.email = 'Please enter a valid email address';
   }
-}
-
-    if (!formData.phone.trim()) {
-  newErrors.phone = 'Phone is required';
-} else {
-  const INDIAN_PHONE_REGEX = /^(\+91[\s-]?)?[6-9]\d{9}$/;
-  const cleanPhone = formData.phone.replace(/[\s-]/g, '');
-  if (!INDIAN_PHONE_REGEX.test(cleanPhone)) {
-    newErrors.phone = 'Please enter a valid Indian mobile number';
+  
+  // Phone validation (Indian numbers)
+  if (!formData.phone?.trim()) {
+    newErrors.phone = 'Phone number is required';
+  } else {
+    const cleanPhone = formData.phone.replace(/[\s\-+()]/g, '');
+    if (!/^(91)?[6-9]\d{9}$/.test(cleanPhone)) {
+      newErrors.phone = 'Enter valid 10-digit Indian mobile number';
+    }
   }
-}
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.pincode.trim()) newErrors.pincode = 'PIN code is required';
-    else if (!/^[0-9]{6}$/.test(formData.pincode)) newErrors.pincode = 'PIN code must be 6 digits';
+  
+  // Address validation
+  if (!formData.address?.trim()) {
+    newErrors.address = 'Address is required';
+  } else if (formData.address.trim().length < 10) {
+    newErrors.address = 'Address must be at least 10 characters';
+  }
+  
+  if (!formData.city?.trim()) newErrors.city = 'City is required';
+  if (!formData.state?.trim()) newErrors.state = 'State is required';
+  
+  // PIN code validation
+  if (!formData.pincode?.trim()) {
+    newErrors.pincode = 'PIN code is required';
+  } else if (!/^[1-9][0-9]{5}$/.test(formData.pincode.trim())) {
+    newErrors.pincode = 'Enter valid 6-digit PIN code';
+  }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
   const handleSubmit = async (e) => {
   e.preventDefault();
   
@@ -3131,6 +3351,11 @@ const ReturnPolicyPage = ({ setCurrentPage }) => {
               </div>
             </div>
             <div className="ml-14 space-y-3">
+              <a href="https://wa.me/917406778169?text=Hi%20Luxora" 
+              className="bg-green-500 text-white px-6 py-3 rounded-lg">
+              💬 Chat on WhatsApp (FREE)
+               </a>
+
               <p className="text-gray-700"><strong>Email:</strong> feed.luxora@gmail.com</p>
               <p className="text-gray-700"><strong>Response Time:</strong> 24-48 hours (Monday to Saturday, 9 AM - 6 PM IST)</p>
             </div>
@@ -3587,33 +3812,46 @@ const Footer = ({ setCurrentPage }) => {
   );
 };
 
-// Admin Login Page
 const AdminLoginPage = ({ setCurrentPage }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { adminLogin } = useStore();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (loading) return;
+  
+  setLoading(true);
+  setError('');
+  
+  try {
+    console.log('🔐 Form submitted');
+    console.log('🔐 Attempting login...');
     
-    if (loading) return; // Prevent double submission
+    const success = await adminLogin(email, password);
     
-    setLoading(true);
-    setError('');
-    
-    try {
-      await loginAdmin(email, password);
-      // Add a small delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setCurrentPage('admin');
-    } catch (error) {
-      setError(error.message || 'Invalid credentials. Please try again.');
-    } finally {
+    if (success) {
+      console.log('✅ Login successful!');
+      
+      // Force immediate navigation
+      setTimeout(() => {
+        setCurrentPage('admin');
+      }, 500);
+      
+    } else {
+      setError('Invalid credentials. Please try again.');
       setLoading(false);
     }
-  };
-
+    
+  } catch (error) {
+    console.error('❌ Login failed:', error);
+    setError('Invalid credentials. Please try again.');
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
@@ -3631,7 +3869,7 @@ const AdminLoginPage = ({ setCurrentPage }) => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(''); }}
               disabled={loading}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:bg-gray-100"
               placeholder="admin@luxora.com"
               required
             />
@@ -3644,14 +3882,14 @@ const AdminLoginPage = ({ setCurrentPage }) => {
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(''); }}
               disabled={loading}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:bg-gray-100"
               placeholder="Enter password"
               required
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center animate-shake">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center">
               <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -3660,7 +3898,7 @@ const AdminLoginPage = ({ setCurrentPage }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 flex items-center justify-center"
           >
             {loading ? (
               <>
@@ -3676,7 +3914,7 @@ const AdminLoginPage = ({ setCurrentPage }) => {
         <button
           onClick={() => setCurrentPage('home')}
           disabled={loading}
-          className="w-full mt-4 text-purple-600 hover:text-purple-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full mt-4 text-purple-600 hover:text-purple-800 font-semibold"
         >
           ← Back to Store
         </button>
@@ -4097,52 +4335,97 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
 const [uploadProgress, setUploadProgress] = useState('');
 
 const handleImageUpload = async (e) => {
-  const files = Array.from(e.target.files);
-  const currentImages = formData.images || [];
+  const files = Array.from(e.target.files || []);
   
-  if (currentImages.length >= 10) {
-    alert('Maximum 10 images allowed per product');
-    e.target.value = ''; // Clear input
+  if (files.length === 0) {
+    toast.error('No files selected');
+    e.target.value = '';
     return;
   }
   
-  const remainingSlots = 10 - currentImages.length;
+  const currentImages = formData.images || [];
+  const MAX_IMAGES = 10;
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
+  
+  if (currentImages.length >= MAX_IMAGES) {
+    toast.error(`Maximum ${MAX_IMAGES} images allowed`);
+    e.target.value = '';
+    return;
+  }
+  
+  const remainingSlots = MAX_IMAGES - currentImages.length;
   const filesToProcess = files.slice(0, remainingSlots);
   
+  // Validate total size
+  const totalSize = filesToProcess.reduce((sum, f) => sum + f.size, 0);
+  if (totalSize > MAX_TOTAL_SIZE) {
+    toast.error('Total file size exceeds 50MB');
+    e.target.value = '';
+    return;
+  }
+  
   setUploading(true);
+  const uploadedUrls = [];
+  const failedFiles = [];
   
   try {
     for (let i = 0; i < filesToProcess.length; i++) {
       const file = filesToProcess[i];
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert(`${file.name} is not an image file`);
+        failedFiles.push({ name: file.name, reason: 'Not an image' });
         continue;
       }
       
-      // Validate file size (10MB for Cloudinary free tier)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`${file.name} is too large. Maximum 10MB per image.`);
+      if (file.size > MAX_FILE_SIZE) {
+        failedFiles.push({ name: file.name, reason: 'Too large (max 10MB)' });
         continue;
       }
       
-      setUploadProgress(`Uploading ${i + 1}/${filesToProcess.length}: ${file.name}...`);
+      // Validate image
+      try {
+        const isValid = await validateImageDimensions(file);
+        if (!isValid) {
+          failedFiles.push({ name: file.name, reason: 'Invalid format' });
+          continue;
+        }
+      } catch (err) {
+        failedFiles.push({ name: file.name, reason: 'Validation failed' });
+        continue;
+      }
       
-      const downloadURL = await uploadImage(file, 'products');
+      setUploadProgress(`Uploading ${i + 1}/${filesToProcess.length}...`);
       
+      try {
+        const downloadURL = await uploadImage(file, 'products');
+        uploadedUrls.push(downloadURL);
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        failedFiles.push({ name: file.name, reason: 'Upload failed' });
+      }
+    }
+    
+    if (uploadedUrls.length > 0) {
       setFormData(prev => ({
         ...prev,
-        images: [...(prev.images || []), downloadURL]
+        images: [...(prev.images || []), ...uploadedUrls]
       }));
+      toast.success(`${uploadedUrls.length} image(s) uploaded`);
     }
+    
+    if (failedFiles.length > 0) {
+      const failed = failedFiles.map(f => f.name).join(', ');
+      toast.error(`Failed: ${failed}`);
+    }
+    
   } catch (error) {
     console.error('Upload error:', error);
-    alert(`Upload failed: ${error.message}`);
+    toast.error('Upload failed: ' + error.message);
   } finally {
     setUploading(false);
     setUploadProgress('');
-    e.target.value = ''; // Clear input
+    e.target.value = '';
   }
 };
 
@@ -5010,30 +5293,64 @@ const AppContent = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { addToRecentlyViewed, isAdminLoggedIn, loading } = useStore();
 
-    // Secret Admin Access
+  // ✅ FIX 1: Better keyboard shortcut
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        console.log('🔑 Opening admin login...');
+        setCurrentPage('adminlogin');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // ✅ FIX 2: URL parameter access
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('admin') === 'true') {
+      if (urlParams.get('admin') === 'true' || urlParams.get('page') === 'admin') {
         setCurrentPage('adminlogin');
         window.history.replaceState({}, '', window.location.pathname);
+      }
+      
+      // Console command support
+      const checkAdmin = localStorage.getItem('openAdmin');
+      if (checkAdmin === 'true') {
+        localStorage.removeItem('openAdmin');
+        setCurrentPage('adminlogin');
       }
     }
   }, []);
 
+
+  React.useEffect(() => {
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+      setCurrentPage('adminlogin');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+}, []);
+
+ 
   // Keyboard Shortcut
   React.useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        e.preventDefault();
-        setCurrentPage('adminlogin');
-      }
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', handleKeyPress);
-      return () => window.removeEventListener('keydown', handleKeyPress);
+  const handleKeyPress = (e) => {
+    // Check for Ctrl+Shift+A (capital A)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      e.preventDefault();
+      console.log('🔑 Admin shortcut pressed!');
+      setCurrentPage('adminlogin');
     }
-  }, []);
+  };
+  
+  window.addEventListener('keydown', handleKeyPress);
+  return () => window.removeEventListener('keydown', handleKeyPress);
+}, []);
  
 
   if (loading) {
@@ -5087,7 +5404,48 @@ const AppContent = () => {
 };
 
 // Main App Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Something went wrong</h2>
+            <p className="text-gray-600 mb-6">
+              {this.state.error?.message || 'An unexpected error occurred'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
+    return this.props.children;
+  }
+}
+
+
 export default function App() {
+  console.log('App loaded!');
   return (
     <StoreProvider>
       <Toaster 
