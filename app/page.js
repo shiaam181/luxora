@@ -11,10 +11,24 @@ import Image from 'next/image';
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
-  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
-  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
+  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
+  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
 };
+
+// Debug: Log config on mount (remove after fixing)
+if (typeof window !== 'undefined') {
+  console.log('📧 EmailJS Config Check:', {
+    serviceId: EMAILJS_CONFIG.serviceId ? '✅ Set' : '❌ Missing',
+    templateId: EMAILJS_CONFIG.templateId ? '✅ Set' : '❌ Missing',
+    publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ Missing',
+    rawValues: {
+      serviceId: EMAILJS_CONFIG.serviceId,
+      templateId: EMAILJS_CONFIG.templateId,
+      publicKey: EMAILJS_CONFIG.publicKey?.substring(0, 5) + '...'
+    }
+  });
+}
 
 
 
