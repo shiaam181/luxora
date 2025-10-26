@@ -7,43 +7,8 @@ import { uploadImage, deleteImage, getOptimizedUrl } from '@/lib/cloudinary';
 import { loginAdmin, logoutAdmin, onAuthChange } from '@/lib/auth';
 import { ShoppingCart, Heart, Menu, X, Home, Package, Star, Trash2, Plus, Minus, Facebook, Twitter, Instagram, Mail, Phone, MapPin, Search, AlertCircle, ChevronLeft, ChevronRight, Filter, TrendingUp, Clock, Award, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
-
-
-
-// ✅ TEMPORARY HARDCODE FOR VERCEL (we'll fix env vars after)
-const EMAILJS_CONFIG = {
-  serviceId: 'service_echyvlv',
-  templateId: 'template_cj71v5u',
-  publicKey: 'wZScFDnM782fzRIg0'
-};
-
-// Keep the debug logs
-if (typeof window !== 'undefined') {
-  console.log('🌍 PAGE LOADED - Environment Variables Check:');
-  console.log('📧 EMAILJS_CONFIG:', {
-    serviceId: EMAILJS_CONFIG.serviceId || '❌ EMPTY',
-    templateId: EMAILJS_CONFIG.templateId || '❌ EMPTY',
-    publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set (' + EMAILJS_CONFIG.publicKey.substring(0, 8) + '...)' : '❌ EMPTY'
-  });
-}
-
-
-// Debug: Log config on mount (remove after fixing)
-if (typeof window !== 'undefined') {
-  console.log('📧 EmailJS Config Check:', {
-    serviceId: EMAILJS_CONFIG.serviceId ? '✅ Set' : '❌ Missing',
-    templateId: EMAILJS_CONFIG.templateId ? '✅ Set' : '❌ Missing',
-    publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ Missing',
-    rawValues: {
-      serviceId: EMAILJS_CONFIG.serviceId,
-      templateId: EMAILJS_CONFIG.templateId,
-      publicKey: EMAILJS_CONFIG.publicKey?.substring(0, 5) + '...'
-    }
-  });
-}
-
-
-
+ 
+ 
 // Sample Products Data
 
 // Validation Helpers
@@ -815,7 +780,7 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
         access_key: '80glqhjc8xyrgy',
         subject: `New Order #${order.id} - Luxora`,
         from_name: 'Luxora Store',
-        to_email: orderData.email, // Send to customer
+        to_email: orderData., // Send to customer
         message: emailBody,
       }),
     });
@@ -823,7 +788,7 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
     const result = await response.json();
     
     if (result.success) {
-      console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
+      console.log('✅✅✅  SENT SUCCESSFULLY!');
       toast.success('Order confirmation sent to your email!');
       return true;
     } else {
@@ -2829,7 +2794,7 @@ const CheckoutPage = ({ setCurrentPage }) => {
   }
   
   // Email validation (RFC 5322)
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const Regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   if (!formData.email?.trim()) {
     newErrors.email = 'Email is required';
   } else if (!emailRegex.test(formData.email.trim())) {
