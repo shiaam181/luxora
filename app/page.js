@@ -12,7 +12,7 @@ import Image from 'next/image';
 
 // ✅ TEMPORARY HARDCODE FOR VERCEL (we'll fix env vars after)
 const EMAILJS_CONFIG = {
-  serviceId: 'service_7opoj8t',
+  serviceId: 'service_echyvlv',
   templateId: 'template_cj71v5u',
   publicKey: 'wZScFDnM782fzRIg0'
 };
@@ -774,118 +774,67 @@ const updateCategory = async (oldName, newName) => {
 };
   
   const sendOrderEmail = async (order, orderData) => {
-  console.log('📧 ===== EMAIL DEBUG START =====');
-  console.log('📧 Order ID:', order?.id);
-  console.log('📧 Customer Email:', orderData?.email);
-  
-  // ✅ CRITICAL FIX: Check if running on client
-  if (typeof window === 'undefined') {
-    console.error('❌ Not running on client side!');
-    return false;
-  }
-  
-  // ✅ Load EmailJS ONCE globally
-  if (!window.emailjs) {
-    console.log('📦 Loading EmailJS script...');
-    
-    try {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        script.async = true;
-        script.type = 'text/javascript';
-        
-        script.onload = () => {
-          console.log('✅ EmailJS script loaded');
-          
-          // ✅ INITIALIZE IMMEDIATELY
-          if (window.emailjs && EMAILJS_CONFIG.publicKey) {
-            window.emailjs.init(EMAILJS_CONFIG.publicKey);
-            console.log('✅ EmailJS initialized with key');
-          }
-          resolve();
-        };
-        
-        script.onerror = () => {
-          console.error('❌ Failed to load EmailJS script');
-          reject(new Error('Script load failed'));
-        };
-        
-        document.head.appendChild(script);
-      });
-      
-      // Wait for initialization
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-    } catch (error) {
-      console.error('❌ EmailJS script error:', error);
-      toast.error('Email service unavailable');
-      return false;
-    }
-  }
-  
-  // ✅ CHECK CONFIG
-  console.log('🔧 Config Check:');
-  console.log('Service ID:', EMAILJS_CONFIG.serviceId || '❌ MISSING');
-  console.log('Template ID:', EMAILJS_CONFIG.templateId || '❌ MISSING');
-  console.log('Public Key:', EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ MISSING');
-  
-  if (!EMAILJS_CONFIG.serviceId || !EMAILJS_CONFIG.templateId || !EMAILJS_CONFIG.publicKey) {
-    console.error('❌ EmailJS config incomplete!');
-    toast.error('Email configuration error');
-    return false;
-  }
-  
-  // ✅ CHECK IF EMAILJS IS READY
-  if (!window.emailjs || typeof window.emailjs.send !== 'function') {
-    console.error('❌ EmailJS not ready');
-    toast.error('Email service not initialized');
-    return false;
-  }
-  
-  console.log('✅ EmailJS ready, preparing email...');
+  console.log('📧 Sending email via Web3Forms...');
   
   try {
-    // Prepare email parameters
     const itemsList = order.items
       .map(item => `${item.name} x${item.quantity} - Rs.${item.price * item.quantity}`)
       .join('\n');
     
-    const params = {
-      to_email: orderData.email,
-      to_name: orderData.fullName,
-      order_id: order.id,
-      order_total: `Rs.${orderData.total}`,
-      payment_method: orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
-      order_items: itemsList,
-      delivery_address: `${orderData.address}, ${orderData.city}, ${orderData.state} - ${orderData.pincode}`,
-      phone: orderData.phone,
-      order_date: new Date(order.date).toLocaleDateString('en-IN'),
-    };
+    const emailBody = `
+🎉 NEW ORDER RECEIVED!
+
+Order ID: ${order.id}
+Date: ${new Date(order.date).toLocaleDateString('en-IN')}
+
+👤 CUSTOMER DETAILS:
+Name: ${orderData.fullName}
+Email: ${orderData.email}
+Phone: ${orderData.phone}
+
+📦 ORDER ITEMS:
+${itemsList}
+
+💰 PAYMENT:
+Subtotal: Rs.${orderData.subtotal}
+Discount: ${orderData.discount}% (Rs.${orderData.discountAmount})
+Total: Rs.${orderData.total}
+Payment Method: ${orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}
+
+🚚 DELIVERY ADDRESS:
+${orderData.address}
+${orderData.city}, ${orderData.state} - ${orderData.pincode}
+    `;
+
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        access_key: '80glqhjc8xyrgy',
+        subject: `New Order #${order.id} - Luxora`,
+        from_name: 'Luxora Store',
+        to_email: orderData.email, // Send to customer
+        message: emailBody,
+      }),
+    });
+
+    const result = await response.json();
     
-    console.log('📤 Sending email with params:', params);
-    
-    // ✅ SEND EMAIL
-    const response = await window.emailjs.send(
-      EMAILJS_CONFIG.serviceId,
-      EMAILJS_CONFIG.templateId,
-      params
-    );
-    
-    console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
-    console.log('Response:', response);
-    toast.success('Order confirmation email sent!');
-    return true;
+    if (result.success) {
+      console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
+      toast.success('Order confirmation sent to your email!');
+      return true;
+    } else {
+      console.error('❌ Email failed:', result);
+      toast.error('Email failed, but order placed!');
+      return false;
+    }
     
   } catch (error) {
-    console.error('❌❌❌ EMAIL SEND ERROR:');
-    console.error('Error type:', error?.name);
-    console.error('Error message:', error?.message);
-    console.error('Error text:', error?.text);
-    console.error('Error status:', error?.status);
-    console.error('Full error:', error);
-    
-    toast.error('Failed to send confirmation email');
+    console.error('❌ Email error:', error);
+    toast.error('Email failed, but order placed!');
     return false;
   }
 };
