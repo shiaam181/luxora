@@ -9,11 +9,11 @@ import { ShoppingCart, Heart, Menu, X, Home, Package, Star, Trash2, Plus, Minus,
 import Image from 'next/image';
 
 
-// EmailJS Configuration
+// ✅ EmailJS Configuration - Access env vars correctly
 const EMAILJS_CONFIG = {
-  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID ,
-  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
+  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
+  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
 };
 
 // Log config on page load (client-side only)
@@ -24,10 +24,12 @@ if (typeof window !== 'undefined') {
     templateId: EMAILJS_CONFIG.templateId || '❌ EMPTY',
     publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set (' + EMAILJS_CONFIG.publicKey.substring(0, 8) + '...)' : '❌ EMPTY'
   });
-  console.log('🔍 Raw process.env values:');
-  console.log('- NEXT_PUBLIC_EMAILJS_SERVICE_ID:', process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '❌ UNDEFINED');
-  console.log('- NEXT_PUBLIC_EMAILJS_TEMPLATE_ID:', process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '❌ UNDEFINED');
-  console.log('- NEXT_PUBLIC_EMAILJS_PUBLIC_KEY:', process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY ? '✅ Set' : '❌ UNDEFINED');
+  
+  // ✅ These will show the actual values if build was correct
+  console.log('🔍 Config values:');
+  console.log('- serviceId:', EMAILJS_CONFIG.serviceId || '❌ UNDEFINED');
+  console.log('- templateId:', EMAILJS_CONFIG.templateId || '❌ UNDEFINED');
+  console.log('- publicKey:', EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ UNDEFINED');
 }
 
 
