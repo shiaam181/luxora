@@ -9,14 +9,15 @@ import { ShoppingCart, Heart, Menu, X, Home, Package, Star, Trash2, Plus, Minus,
 import Image from 'next/image';
 
 
-// ✅ EmailJS Configuration - Access env vars correctly
+
+// ✅ TEMPORARY HARDCODE FOR VERCEL (we'll fix env vars after)
 const EMAILJS_CONFIG = {
-  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
-  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
-  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
+  serviceId: 'service_7opoj8t',
+  templateId: 'template_cj71v5u',
+  publicKey: 'wZScFDnM782fzRIg0'
 };
 
-// Log config on page load (client-side only)
+// Keep the debug logs
 if (typeof window !== 'undefined') {
   console.log('🌍 PAGE LOADED - Environment Variables Check:');
   console.log('📧 EMAILJS_CONFIG:', {
@@ -24,12 +25,6 @@ if (typeof window !== 'undefined') {
     templateId: EMAILJS_CONFIG.templateId || '❌ EMPTY',
     publicKey: EMAILJS_CONFIG.publicKey ? '✅ Set (' + EMAILJS_CONFIG.publicKey.substring(0, 8) + '...)' : '❌ EMPTY'
   });
-  
-  // ✅ These will show the actual values if build was correct
-  console.log('🔍 Config values:');
-  console.log('- serviceId:', EMAILJS_CONFIG.serviceId || '❌ UNDEFINED');
-  console.log('- templateId:', EMAILJS_CONFIG.templateId || '❌ UNDEFINED');
-  console.log('- publicKey:', EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ UNDEFINED');
 }
 
 
