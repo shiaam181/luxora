@@ -804,6 +804,62 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
   }
 };
 
+// Add this function in your page.js after sendOrderEmail function
+
+const sendTelegramNotification = async (order, orderData) => {
+  const TELEGRAM_BOT_TOKEN = '7135112575:AAGk9arBQF_UHCtcq6bH4V-3FIa3T9URuhc'; // Get from @BotFather
+  const TELEGRAM_CHAT_ID = '5217430925';     // Get from @userinfobot
+  
+  const message = `
+🎉 NEW ORDER RECEIVED!
+
+📦 Order ID: #${order.id}
+💰 Amount: ₹${orderData.total}
+
+👤 Customer:
+Name: ${orderData.fullName}
+Phone: ${orderData.phone}
+Email: ${orderData.email}
+
+📍 Address:
+${orderData.address}
+${orderData.city}, ${orderData.state} - ${orderData.pincode}
+
+🛍️ Items:
+${order.items.map(item => `• ${item.name} x${item.quantity} - ₹${item.price * item.quantity}`).join('\n')}
+
+💳 Payment: ${orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}
+
+⏰ Time: ${new Date().toLocaleString('en-IN')}
+  `.trim();
+
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      }
+    );
+
+    if (response.ok) {
+      console.log('✅ Telegram notification sent!');
+      return true;
+    } else {
+      console.error('❌ Telegram failed:', await response.text());
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Telegram error:', error);
+    return false;
+  }
+};
+
 
   const placeOrder = async (orderData) => {
   const newOrder = {
@@ -826,6 +882,11 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
       sendOrderEmail(newOrder, orderData).catch(err => {
         console.error('Email sending failed:', err);
         // Order is still placed, just email failed
+      });
+
+       // 🔥 Send Telegram notification
+      sendTelegramNotification(newOrder, orderData).catch(err => {
+        console.error('Telegram failed:', err);
       });
       
       return newOrder.id;
@@ -3362,6 +3423,334 @@ const ReturnPolicyPage = ({ setCurrentPage }) => {
   );
 };
 
+// 1️⃣ PRIVACY POLICY PAGE
+const PrivacyPolicyPage = ({ setCurrentPage }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+          <button onClick={() => setCurrentPage('home')} className="text-purple-600 hover:text-purple-800 font-semibold mb-4 flex items-center">
+            ← Back to Home
+          </button>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Privacy Policy</h1>
+          <p className="text-gray-600">Last Updated: January 2025</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8 space-y-6">
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">1. Information We Collect</h2>
+            <p className="text-gray-700 mb-3">When you place an order on Luxora, we collect:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li><strong>Personal Information:</strong> Name, email, phone number, shipping address</li>
+              <li><strong>Payment Information:</strong> Transaction details (we dont store card details)</li>
+              <li><strong>Order History:</strong> Products purchased, order value, delivery status</li>
+              <li><strong>Device Information:</strong> IP address, browser type, device type</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">2. How We Use Your Information</h2>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Process and fulfill your orders</li>
+              <li>Send order confirmations and shipping updates</li>
+              <li>Provide customer support</li>
+              <li>Improve our products and services</li>
+              <li>Send promotional offers (with your consent)</li>
+              <li>Prevent fraud and ensure security</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">3. Information Sharing</h2>
+            <p className="text-gray-700 mb-3">We DO NOT sell your personal information. We only share data with:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li><strong>Delivery Partners:</strong> To ship your orders</li>
+              <li><strong>Payment Processors:</strong> To process transactions securely</li>
+              <li><strong>Legal Authorities:</strong> When required by law</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">4. Data Security</h2>
+            <p className="text-gray-700">We use industry-standard encryption and security measures to protect your data. However, no online transmission is 100% secure. We recommend using strong passwords and being cautious with your account information.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">5. Cookies & Tracking</h2>
+            <p className="text-gray-700">We use cookies to enhance your shopping experience, remember your cart, and analyze site traffic. You can disable cookies in your browser settings, but some features may not work properly.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">6. Your Rights</h2>
+            <p className="text-gray-700 mb-3">You have the right to:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Access your personal data</li>
+              <li>Request corrections or deletions</li>
+              <li>Opt-out of marketing emails</li>
+              <li>Request a copy of your data</li>
+            </ul>
+            <p className="text-gray-700 mt-3">Contact us at <a href="mailto:feed.luxora@gmail.com" className="text-purple-600 font-semibold">feed.luxora@gmail.com</a> to exercise these rights.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">7. Childrens Privacy</h2>
+            <p className="text-gray-700">Luxora does not knowingly collect information from children under 18. If you believe we have collected such information, please contact us immediately.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">8. Changes to This Policy</h2>
+            <p className="text-gray-700">We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated date.</p>
+          </section>
+
+          <div className="bg-purple-50 border-l-4 border-purple-600 p-4 mt-6">
+            <p className="text-gray-700"><strong>Contact Us:</strong> For any privacy-related questions, email us at <a href="mailto:feed.luxora@gmail.com" className="text-purple-600 font-semibold">feed.luxora@gmail.com</a> or call +91 7406778169</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 2️⃣ TERMS & CONDITIONS PAGE
+const TermsConditionsPage = ({ setCurrentPage }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+          <button onClick={() => setCurrentPage('home')} className="text-purple-600 hover:text-purple-800 font-semibold mb-4 flex items-center">
+            ← Back to Home
+          </button>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Terms & Conditions</h1>
+          <p className="text-gray-600">Last Updated: January 2025</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8 space-y-6">
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">1. Acceptance of Terms</h2>
+            <p className="text-gray-700">By accessing and using Luxoras website, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use our services.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">2. Use of Website</h2>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>You must be at least 18 years old to make purchases</li>
+              <li>You agree to provide accurate information during checkout</li>
+              <li>You are responsible for maintaining account security</li>
+              <li>Unauthorized use of the website may result in account termination</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">3. Product Information</h2>
+            <p className="text-gray-700">We strive to display accurate product images and descriptions. However:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Colors may vary slightly due to screen settings</li>
+              <li>Measurements are approximate</li>
+              <li>We reserve the right to correct errors in pricing or descriptions</li>
+              <li>Products are subject to availability</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">4. Orders & Payment</h2>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>All orders are subject to acceptance and availability</li>
+              <li>We reserve the right to refuse or cancel any order</li>
+              <li>Prices are in Indian Rupees (₹) and include applicable taxes</li>
+              <li>Payment methods: Cash on Delivery, UPI, Cards</li>
+              <li>COD orders may require verification before dispatch</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">5. Shipping & Delivery</h2>
+            <p className="text-gray-700">Refer to our <button onClick={() => setCurrentPage('shipping')} className="text-purple-600 font-semibold hover:underline">Shipping Policy</button> for detailed information on delivery timelines and charges.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">6. Returns & Refunds</h2>
+            <p className="text-gray-700">Refer to our <button onClick={() => setCurrentPage('returnpolicy')} className="text-purple-600 font-semibold hover:underline">Return Policy</button> for information on returns, exchanges, and refunds.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">7. Intellectual Property</h2>
+            <p className="text-gray-700">All content on this website (images, text, logos, designs) is the property of Luxora and protected by copyright laws. Unauthorized use is prohibited.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">8. Limitation of Liability</h2>
+            <p className="text-gray-700">Luxora is not liable for:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Delays or failures in delivery due to circumstances beyond our control</li>
+              <li>Misuse of products after delivery</li>
+              <li>Indirect, incidental, or consequential damages</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">9. Governing Law</h2>
+            <p className="text-gray-700">These Terms are governed by the laws of India. Any disputes will be subject to the exclusive jurisdiction of courts in Karnataka, India.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">10. Changes to Terms</h2>
+            <p className="text-gray-700">We reserve the right to modify these Terms at any time. Continued use of the website after changes constitutes acceptance of the updated Terms.</p>
+          </section>
+
+          <div className="bg-purple-50 border-l-4 border-purple-600 p-4 mt-6">
+            <p className="text-gray-700"><strong>Questions?</strong> Contact us at <a href="mailto:feed.luxora@gmail.com" className="text-purple-600 font-semibold">feed.luxora@gmail.com</a> or +91 7406778169</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 3️⃣ SHIPPING POLICY PAGE
+const ShippingPolicyPage = ({ setCurrentPage }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+          <button onClick={() => setCurrentPage('home')} className="text-purple-600 hover:text-purple-800 font-semibold mb-4 flex items-center">
+            ← Back to Home
+          </button>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Shipping Policy</h1>
+          <p className="text-gray-600">Last Updated: January 2025</p>
+        </div>
+
+        <div className="bg-green-50 border-l-4 border-green-600 rounded-xl p-6 mb-8">
+          <h3 className="font-bold text-green-700 text-lg mb-2">🎉 FREE Shipping on ALL Orders!</h3>
+          <p className="text-green-700">We offer FREE delivery across India with no minimum order value. Shop worry-free!</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8 space-y-6">
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">1. Delivery Timeline</h2>
+            <div className="space-y-3">
+              <div className="flex items-start">
+                <span className="text-purple-600 font-bold mr-3">📦</span>
+                <div>
+                  <p className="font-semibold text-gray-800">Processing Time</p>
+                  <p className="text-gray-700">Orders are processed within 1-2 business days after confirmation</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <span className="text-purple-600 font-bold mr-3">🚚</span>
+                <div>
+                  <p className="font-semibold text-gray-800">Delivery Time</p>
+                  <p className="text-gray-700">3-7 business days for most locations in India</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <span className="text-purple-600 font-bold mr-3">🏔️</span>
+                <div>
+                  <p className="font-semibold text-gray-800">Remote Areas</p>
+                  <p className="text-gray-700">7-10 business days for remote/hilly regions</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">2. Shipping Charges</h2>
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6">
+              <p className="text-2xl font-bold text-purple-600 mb-2">₹0 - FREE Shipping!</p>
+              <p className="text-gray-700">No hidden charges. What you see is what you pay.</p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">3. Serviceable Areas</h2>
+            <p className="text-gray-700 mb-3">We deliver across India to:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>All major cities and metro areas</li>
+              <li>Tier 2 and Tier 3 cities</li>
+              <li>Most rural and remote locations</li>
+            </ul>
+            <p className="text-gray-700 mt-3">Enter your PIN code at checkout to confirm serviceability.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">4. Order Tracking</h2>
+            <p className="text-gray-700 mb-3">Once your order is shipped, you will receive:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Email confirmation with tracking number</li>
+              <li>SMS updates on delivery status</li>
+              <li>Real-time tracking via courier partners website</li>
+            </ul>
+            <p className="text-gray-700 mt-3">You can also track your order from the Orders section on our website.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">5. Delivery Partners</h2>
+            <p className="text-gray-700">We work with trusted courier partners including:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="font-semibold">Delhivery</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="font-semibold">Blue Dart</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="font-semibold">DTDC</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="font-semibold">India Post</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">6. Cash on Delivery (COD)</h2>
+            <div className="bg-blue-50 rounded-lg p-6">
+              <p className="text-blue-800 mb-2"><strong>✅ Available:</strong> COD is available for all orders across India</p>
+              <p className="text-blue-800"><strong>💰 Charges:</strong> FREE - No extra charges for COD</p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">7. Failed Delivery Attempts</h2>
+            <p className="text-gray-700 mb-3">If delivery fails:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Courier will attempt delivery 2-3 times</li>
+              <li>You will be contacted via phone/SMS</li>
+              <li>Package will be held at local courier office for 7 days</li>
+              <li>Unclaimed packages will be returned to us</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">8. Damaged/Lost Packages</h2>
+            <p className="text-gray-700 mb-3">In rare cases of damage or loss during transit:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Contact us within 24 hours of delivery</li>
+              <li>Provide photos/videos of damaged packaging</li>
+              <li>We will process a replacement or refund immediately</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">9. Holidays & Delays</h2>
+            <p className="text-gray-700">Deliveries may be delayed during:</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-700">
+              <li>Public holidays and festivals</li>
+              <li>Natural calamities or extreme weather</li>
+              <li>Strike or political unrest</li>
+              <li>High-demand sale periods</li>
+            </ul>
+            <p className="text-gray-700 mt-3">Well notify you of any expected delays via email/SMS.</p>
+          </section>
+
+          <div className="bg-purple-50 border-l-4 border-purple-600 p-4 mt-6">
+            <p className="text-gray-700"><strong>Need Help?</strong> Contact us at <a href="mailto:feed.luxora@gmail.com" className="text-purple-600 font-semibold">feed.luxora@gmail.com</a> or call/WhatsApp: +91 7406778169</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // About Us Page Component
 const AboutUsPage = ({ setCurrentPage }) => {
   return (
@@ -3701,14 +4090,17 @@ const Footer = ({ setCurrentPage }) => {
             </div>
           </div>
           <div>
-            <h4 className="text-lg font-bold mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><button onClick={() => setCurrentPage('about')} className="hover:text-white transition">About Us</button></li>
-              <li><button onClick={() => setCurrentPage('products')} className="hover:text-white transition">Shop</button></li>
-              <li><button onClick={() => setCurrentPage('contact')} className="hover:text-white transition">Contact</button></li>
-              <li><button onClick={() => setCurrentPage('returnpolicy')} className="hover:text-white transition">Return Policy</button></li>
-            </ul>
-          </div>
+  <h4 className="text-lg font-bold mb-4">Quick Links</h4>
+  <ul className="space-y-2 text-gray-400">
+    <li><button onClick={() => setCurrentPage('about')} className="hover:text-white transition">About Us</button></li>
+    <li><button onClick={() => setCurrentPage('products')} className="hover:text-white transition">Shop</button></li>
+    <li><button onClick={() => setCurrentPage('contact')} className="hover:text-white transition">Contact</button></li>
+    <li><button onClick={() => setCurrentPage('returnpolicy')} className="hover:text-white transition">Return Policy</button></li>
+    <li><button onClick={() => setCurrentPage('privacy')} className="hover:text-white transition">Privacy Policy</button></li>
+    <li><button onClick={() => setCurrentPage('terms')} className="hover:text-white transition">Terms & Conditions</button></li>
+    <li><button onClick={() => setCurrentPage('shipping')} className="hover:text-white transition">Shipping Policy</button></li>
+  </ul>
+</div>
           <div>
             <h4 className="text-lg font-bold mb-4">Contact</h4>
             <div className="space-y-2 text-gray-400">
@@ -5359,6 +5751,9 @@ const AppContent = () => {
       {currentPage === 'about' && <AboutUsPage setCurrentPage={handlePageChange} />}
       {currentPage === 'contact' && <ContactUsPage setCurrentPage={handlePageChange} />}
       {currentPage === 'returnpolicy' && <ReturnPolicyPage setCurrentPage={handlePageChange} />}
+      {currentPage === 'privacy' && <PrivacyPolicyPage setCurrentPage={handlePageChange} />}
+      {currentPage === 'terms' && <TermsConditionsPage setCurrentPage={handlePageChange} />}
+      {currentPage === 'shipping' && <ShippingPolicyPage setCurrentPage={handlePageChange} />}
       {currentPage === 'adminlogin' && <AdminLoginPage setCurrentPage={handlePageChange} />}
       {currentPage === 'admin' && isAdminLoggedIn && <AdminDashboard setCurrentPage={handlePageChange} />}
       
