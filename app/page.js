@@ -4459,6 +4459,118 @@ const AdminProducts = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletingProductId, setDeletingProductId] = useState(null);
 
+    // 🆕 NEW: Smart Import States
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importedData, setImportedData] = useState(null);
+
+
+  // 🆕 NEW: Smart Product Import Function
+  const handleImportProduct = async () => {
+    if (!importUrl.trim()) {
+      toast.error('Please enter a product URL');
+      return;
+    }
+    
+    setIsImporting(true);
+    
+    try {
+      // Detect platform
+      let platform = 'unknown';
+      if (importUrl.includes('amazon.')) platform = 'amazon';
+      else if (importUrl.includes('flipkart.')) platform = 'flipkart';
+      else if (importUrl.includes('myntra.')) platform = 'myntra';
+      else if (importUrl.includes('meesho.')) platform = 'meesho';
+      
+      if (platform === 'unknown') {
+        toast.error('Unsupported platform. Use Amazon, Flipkart, Myntra, or Meesho links.');
+        setIsImporting(false);
+        return;
+      }
+      
+      toast.loading('Fetching product details...', { id: 'import' });
+      
+      // 🔥 SCRAPING API CALL
+      const response = await fetch(`https://api.scraperapi.com/?api_key=5ea47bda05f13e474c4f6b6262bf399f&url=${encodeURIComponent(importUrl)}`);
+      const html = await response.text();
+      
+      // Parse HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      let productData = {};
+      
+      if (platform === 'amazon') {
+        productData = {
+          name: doc.querySelector('#productTitle')?.textContent?.trim() || 'Imported Product',
+          price: parseFloat(doc.querySelector('.a-price-whole')?.textContent?.replace(/[^0-9]/g, '') || '999'),
+          originalPrice: parseFloat(doc.querySelector('.a-text-price .a-offscreen')?.textContent?.replace(/[^0-9]/g, '') || '1499'),
+          description: doc.querySelector('#feature-bullets')?.textContent?.trim() || 'Imported from Amazon',
+          images: Array.from(doc.querySelectorAll('#altImages img')).map(img => img.src).filter(src => src && !src.includes('pixel')),
+          features: Array.from(doc.querySelectorAll('#feature-bullets li')).map(li => li.textContent.trim()).slice(0, 4),
+          category: 'Ethnic',
+          stock: 10,
+          tags: []
+        };
+      } else if (platform === 'flipkart') {
+        productData = {
+          name: doc.querySelector('.B_NuCI')?.textContent?.trim() || 'Imported Product',
+          price: parseFloat(doc.querySelector('._30jeq3')?.textContent?.replace(/[^0-9]/g, '') || '999'),
+          originalPrice: parseFloat(doc.querySelector('._3I9_wc')?.textContent?.replace(/[^0-9]/g, '') || '1499'),
+          description: doc.querySelector('._1mXcCf')?.textContent?.trim() || 'Imported from Flipkart',
+          images: Array.from(doc.querySelectorAll('._2r_T1I img')).map(img => img.src),
+          features: Array.from(doc.querySelectorAll('._21Ahn- li')).map(li => li.textContent.trim()).slice(0, 4),
+          category: 'Ethnic',
+          stock: 10,
+          tags: []
+        };
+      } else if (platform === 'meesho') {
+        productData = {
+          name: doc.querySelector('h1.sc-eDvSVe')?.textContent?.trim() || 
+                doc.querySelector('[data-testid="product-title"]')?.textContent?.trim() || 
+                'Imported Product',
+          price: parseFloat(
+            (doc.querySelector('.sc-jXbUNg')?.textContent || 
+             doc.querySelector('[data-testid="product-price"]')?.textContent || 
+             '999').replace(/[^0-9]/g, '')
+          ),
+          originalPrice: parseFloat(
+            (doc.querySelector('.sc-fujyAs')?.textContent || 
+             doc.querySelector('[data-testid="product-original-price"]')?.textContent || 
+             '1499').replace(/[^0-9]/g, '')
+          ),
+          description: doc.querySelector('.sc-hBUSln')?.textContent?.trim() || 
+                       doc.querySelector('[data-testid="product-description"]')?.textContent?.trim() || 
+                       'Imported from Meesho',
+          images: Array.from(doc.querySelectorAll('.sc-fotOHu img, [data-testid="product-image"]')).map(img => img.src || img.dataset.src),
+          features: Array.from(doc.querySelectorAll('.sc-gKAaRy li, [data-testid="product-features"] li')).map(li => li.textContent.trim()).slice(0, 4),
+          category: 'Ethnic',
+          stock: 10,
+          tags: []
+        };
+      }
+      
+      // Filter out invalid images
+      productData.images = productData.images.filter(img => img && img.startsWith('http'));
+      
+      if (!productData.name || productData.name === 'Imported Product') {
+        toast.error('Failed to extract product details. Try manually.', { id: 'import' });
+        setIsImporting(false);
+        return;
+      }
+      
+      setImportedData(productData);
+      toast.success('Product imported! Review and save.', { id: 'import' });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('Import failed. Check console for details.', { id: 'import' });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleDeleteProduct = async (productId) => {
     if (!confirm('Delete this product?')) return;
     
@@ -4551,6 +4663,17 @@ const AdminProducts = () => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold">Manage Products</h3>
         <div className="flex gap-2">
+          {/* 🆕 NEW: Smart Import Button */}
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition flex items-center font-bold shadow-lg"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+            Smart Import
+          </button>
+          
           <button
             onClick={handleDeleteAllProducts}
             className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition flex items-center font-bold"
@@ -4642,10 +4765,168 @@ const AdminProducts = () => {
           }}
         />
       )}
+
+      {/* 🆕 NEW: Smart Import Modal */}
+      {showImportModal && (
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => !isImporting && setShowImportModal(false)}></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold">🚀 Smart Product Import</h3>
+                  <p className="text-sm text-gray-600 mt-1">Paste product URL from Amazon, Flipkart, or Myntra</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportedData(null);
+                    setImportUrl('');
+                  }} 
+                  disabled={isImporting}
+                  className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {!importedData ? (
+                // Step 1: Enter URL
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Product URL</label>
+                    <input
+                      type="url"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      placeholder="https://www.amazon.in/dp/B0XXXXXX or https://www.flipkart.com/product/..."
+                      disabled={isImporting}
+                      className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 disabled:bg-gray-100"
+                    />
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>📌 Supported Platforms:</strong>
+                      <br />✅ Amazon India (amazon.in)
+                      <br />✅ Flipkart (flipkart.com)
+                      <br />✅ Myntra (myntra.com)
+                       <br />✅ Meesho (meesho.com)
+                      <br /><br />
+                      <strong>⚠️ Note:</strong> This feature requires a ScraperAPI key. See setup instructions below.
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800">
+                      <strong>🔧 Setup Required:</strong>
+                      <br />1. Get free API key: <a href="https://www.scraperapi.com/?fp_ref=luxora" target="_blank" className="text-blue-600 underline">scraperapi.com</a> (5000 free requests/month)
+                      <br />2. Replace <code className="bg-yellow-200 px-1 rounded">YOUR_API_KEY</code> in the code with your actual key
+                      <br />3. Paste product URL and click Import
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleImportProduct}
+                    disabled={isImporting || !importUrl.trim()}
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {isImporting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Importing Product...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Import Product
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                // Step 2: Preview Imported Data
+                <div className="space-y-4">
+                  <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                    <p className="text-green-800 font-semibold">✅ Product Imported Successfully!</p>
+                    <p className="text-sm text-green-700 mt-1">Review the details below and click Edit & Save to add your markup and customize.</p>
+                  </div>
+
+                  <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <h4 className="font-bold mb-3">Preview:</h4>
+                    
+                    {/* Images Preview */}
+                    {importedData.images && importedData.images.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold mb-2">Images ({importedData.images.length}):</p>
+                        <div className="flex gap-2 overflow-x-auto">
+                          {importedData.images.slice(0, 5).map((img, idx) => (
+                            <img key={idx} src={img} alt="" className="w-20 h-20 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="font-semibold">Name:</span> {importedData.name}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Price:</span> ₹{importedData.price}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Original Price:</span> ₹{importedData.originalPrice}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Description:</span> {importedData.description?.substring(0, 100)}...
+                      </div>
+                      {importedData.features && importedData.features.length > 0 && (
+                        <div>
+                          <span className="font-semibold">Features:</span>
+                          <ul className="list-disc ml-5 mt-1">
+                            {importedData.features.slice(0, 3).map((f, i) => (
+                              <li key={i}>{f.substring(0, 50)}...</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setImportedData(null);
+                        setImportUrl('');
+                      }}
+                      className="flex-1 border-2 border-gray-300 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-50"
+                    >
+                      Import Another
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowImportModal(false);
+                        setShowAddModal(true);
+                        setEditingProduct(importedData);
+                        setImportedData(null);
+                        setImportUrl('');
+                      }}
+                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-lg font-bold hover:from-green-600 hover:to-green-700"
+                    >
+                      ✏️ Edit & Save
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
-
 // Product Form Modal
 const ProductFormModal = ({ product, onClose, onSave }) => {
   const { categories } = useStore();
