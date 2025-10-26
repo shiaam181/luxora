@@ -777,7 +777,7 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        access_key: '80glqhjc8xyrgy',
+        access_key: 'ab2b25b1-853b-41fc-aa5e-475611361e85',
         subject: `New Order #${order.id} - Luxora`,
         from_name: 'Luxora Store',
         to_email: orderData.email, // Send to customer
