@@ -780,7 +780,7 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
         access_key: '80glqhjc8xyrgy',
         subject: `New Order #${order.id} - Luxora`,
         from_name: 'Luxora Store',
-        to_email: orderData., // Send to customer
+        to_email: orderData.email, // Send to customer
         message: emailBody,
       }),
     });
@@ -788,7 +788,7 @@ ${orderData.city}, ${orderData.state} - ${orderData.pincode}
     const result = await response.json();
     
     if (result.success) {
-      console.log('✅✅✅  SENT SUCCESSFULLY!');
+      console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
       toast.success('Order confirmation sent to your email!');
       return true;
     } else {
@@ -2794,7 +2794,7 @@ const CheckoutPage = ({ setCurrentPage }) => {
   }
   
   // Email validation (RFC 5322)
-  const Regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   if (!formData.email?.trim()) {
     newErrors.email = 'Email is required';
   } else if (!emailRegex.test(formData.email.trim())) {
