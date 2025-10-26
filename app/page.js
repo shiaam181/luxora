@@ -11,9 +11,9 @@ import Image from 'next/image';
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
-  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
-  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
-  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
+  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID ,
+  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
 };
 
 // Log config on page load (client-side only)
@@ -777,93 +777,79 @@ const updateCategory = async (oldName, newName) => {
 };
   
   const sendOrderEmail = async (order, orderData) => {
-  console.log('🔍 ===== EMAIL DEBUG START =====');
-  console.log('🔍 Step 1: Check if function is called');
-  console.log('🔍 Order ID:', order?.id);
-  console.log('🔍 Customer Email:', orderData?.email);
+  console.log('📧 ===== EMAIL DEBUG START =====');
+  console.log('📧 Order ID:', order?.id);
+  console.log('📧 Customer Email:', orderData?.email);
   
-  // Check config
-  console.log('🔍 Step 2: Check EMAILJS_CONFIG');
-  console.log('🔍 Config Object:', EMAILJS_CONFIG);
-  console.log('🔍 Service ID exists?', !!EMAILJS_CONFIG.serviceId);
-  console.log('🔍 Template ID exists?', !!EMAILJS_CONFIG.templateId);
-  console.log('🔍 Public Key exists?', !!EMAILJS_CONFIG.publicKey);
-  console.log('🔍 Service ID value:', EMAILJS_CONFIG.serviceId);
-  console.log('🔍 Template ID value:', EMAILJS_CONFIG.templateId);
-  console.log('🔍 Public Key value:', EMAILJS_CONFIG.publicKey?.substring(0, 10) + '...');
-  
-  // CRITICAL CHECK
-  if (!EMAILJS_CONFIG.serviceId || !EMAILJS_CONFIG.templateId || !EMAILJS_CONFIG.publicKey) {
-    console.error('❌ CRITICAL: EmailJS config is incomplete!');
-    console.error('❌ Missing values:', {
-      serviceId: !EMAILJS_CONFIG.serviceId ? 'MISSING' : 'OK',
-      templateId: !EMAILJS_CONFIG.templateId ? 'MISSING' : 'OK',
-      publicKey: !EMAILJS_CONFIG.publicKey ? 'MISSING' : 'OK'
-    });
-    
-    // Check environment variables directly
-    console.log('🔍 Checking process.env directly:');
-    console.log('🔍 SERVICE_ID from env:', process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID);
-    console.log('🔍 TEMPLATE_ID from env:', process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID);
-    console.log('🔍 PUBLIC_KEY from env:', process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY);
-    
-    toast.error('Email configuration error - Check console logs');
+  // ✅ CRITICAL FIX: Check if running on client
+  if (typeof window === 'undefined') {
+    console.error('❌ Not running on client side!');
     return false;
   }
   
-  console.log('✅ Config validation passed');
-  
-  try {
-    console.log('🔍 Step 3: Check if window.emailjs exists');
-    console.log('🔍 window.emailjs exists?', !!window.emailjs);
+  // ✅ Load EmailJS ONCE globally
+  if (!window.emailjs) {
+    console.log('📦 Loading EmailJS script...');
     
-    // Load EmailJS script
-    if (!window.emailjs) {
-      console.log('📦 Loading EmailJS script...');
-      
+    try {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
         script.async = true;
+        script.type = 'text/javascript';
         
         script.onload = () => {
-          console.log('✅ EmailJS script loaded successfully');
-          console.log('✅ window.emailjs now exists?', !!window.emailjs);
+          console.log('✅ EmailJS script loaded');
+          
+          // ✅ INITIALIZE IMMEDIATELY
+          if (window.emailjs && EMAILJS_CONFIG.publicKey) {
+            window.emailjs.init(EMAILJS_CONFIG.publicKey);
+            console.log('✅ EmailJS initialized with key');
+          }
           resolve();
         };
         
-        script.onerror = (error) => {
+        script.onerror = () => {
           console.error('❌ Failed to load EmailJS script');
-          console.error('❌ Error:', error);
-          reject(new Error('Failed to load EmailJS'));
+          reject(new Error('Script load failed'));
         };
         
         document.head.appendChild(script);
       });
       
       // Wait for initialization
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    console.log('🔍 Step 4: Check EmailJS initialization');
-    console.log('🔍 window.emailjs type:', typeof window.emailjs);
-    console.log('🔍 window.emailjs.init exists?', !!window.emailjs?.init);
-    console.log('🔍 window.emailjs.send exists?', !!window.emailjs?.send);
-    
-    if (!window.emailjs || !window.emailjs.init || !window.emailjs.send) {
-      console.error('❌ EmailJS object is incomplete');
-      console.error('❌ window.emailjs:', window.emailjs);
-      toast.error('Email service initialization failed');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      console.error('❌ EmailJS script error:', error);
+      toast.error('Email service unavailable');
       return false;
     }
-    
-    // Initialize EmailJS
-    console.log('🔍 Step 5: Initialize EmailJS with public key');
-    window.emailjs.init(EMAILJS_CONFIG.publicKey);
-    console.log('✅ EmailJS initialized');
-    
+  }
+  
+  // ✅ CHECK CONFIG
+  console.log('🔧 Config Check:');
+  console.log('Service ID:', EMAILJS_CONFIG.serviceId || '❌ MISSING');
+  console.log('Template ID:', EMAILJS_CONFIG.templateId || '❌ MISSING');
+  console.log('Public Key:', EMAILJS_CONFIG.publicKey ? '✅ Set' : '❌ MISSING');
+  
+  if (!EMAILJS_CONFIG.serviceId || !EMAILJS_CONFIG.templateId || !EMAILJS_CONFIG.publicKey) {
+    console.error('❌ EmailJS config incomplete!');
+    toast.error('Email configuration error');
+    return false;
+  }
+  
+  // ✅ CHECK IF EMAILJS IS READY
+  if (!window.emailjs || typeof window.emailjs.send !== 'function') {
+    console.error('❌ EmailJS not ready');
+    toast.error('Email service not initialized');
+    return false;
+  }
+  
+  console.log('✅ EmailJS ready, preparing email...');
+  
+  try {
     // Prepare email parameters
-    console.log('🔍 Step 6: Prepare email parameters');
     const itemsList = order.items
       .map(item => `${item.name} x${item.quantity} - Rs.${item.price * item.quantity}`)
       .join('\n');
@@ -880,13 +866,9 @@ const updateCategory = async (oldName, newName) => {
       order_date: new Date(order.date).toLocaleDateString('en-IN'),
     };
     
-    console.log('✅ Email params prepared:', params);
+    console.log('📤 Sending email with params:', params);
     
-    // Send email
-    console.log('🔍 Step 7: Sending email...');
-    console.log('🔍 Using Service ID:', EMAILJS_CONFIG.serviceId);
-    console.log('🔍 Using Template ID:', EMAILJS_CONFIG.templateId);
-    
+    // ✅ SEND EMAIL
     const response = await window.emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
@@ -894,23 +876,23 @@ const updateCategory = async (oldName, newName) => {
     );
     
     console.log('✅✅✅ EMAIL SENT SUCCESSFULLY!');
-    console.log('✅ Response:', response);
+    console.log('Response:', response);
     toast.success('Order confirmation email sent!');
     return true;
     
   } catch (error) {
-    console.error('❌❌❌ EMAIL ERROR CAUGHT:');
-    console.error('❌ Error type:', typeof error);
-    console.error('❌ Error message:', error?.message);
-    console.error('❌ Error text:', error?.text);
-    console.error('❌ Error status:', error?.status);
-    console.error('❌ Full error object:', error);
-    console.error('❌ Error stack:', error?.stack);
+    console.error('❌❌❌ EMAIL SEND ERROR:');
+    console.error('Error type:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Error text:', error?.text);
+    console.error('Error status:', error?.status);
+    console.error('Full error:', error);
     
-    toast.error('Failed to send email, but order was placed!');
+    toast.error('Failed to send confirmation email');
     return false;
   }
 };
+
 
   const placeOrder = async (orderData) => {
   const newOrder = {
