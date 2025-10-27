@@ -1197,6 +1197,8 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
   
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const inWishlist = isInWishlist(product.id);
@@ -1248,10 +1250,14 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
                 <div className="aspect-square w-full flex items-center justify-center">
                   {productImages[selectedImageIndex]?.startsWith('http') ? (
                     <img 
-                      src={productImages[selectedImageIndex]} 
-                      alt={product.name}
-                      className="w-full h-full object-contain p-4"
-                    />
+  src={productImages[selectedImageIndex]} 
+  alt={product.name}
+  className="w-full h-full object-contain p-4 cursor-pointer"
+  onClick={() => {
+    setShowImageModal(true);
+    setModalImageIndex(selectedImageIndex);
+  }}
+/>
                   ) : (
                     // Fallback emoji display
                     <div className="w-full h-full bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-8xl">
@@ -1282,35 +1288,35 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
               </div>
 
               {/* ✅ THUMBNAIL NAVIGATION (Skechers Style) */}
-              {productImages.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {productImages.map((img, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImageIndex(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
-                        selectedImageIndex === index 
-                          ? 'border-purple-600 ring-2 ring-purple-300' 
-                          : 'border-gray-200 hover:border-gray-400'
-                      }`}
-                    >
-                      {img.startsWith('http') ? (
-                        <img 
-                          src={img} 
-                          alt={`View ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-2xl">
-                          {product.image === 'necklace' && '💍'}
-                          {product.image === 'kurti' && '👗'}
-                          {/* ...other emojis... */}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+{productImages.length > 1 && (
+  <div className="flex gap-2 overflow-x-auto pb-2">
+    {productImages.map((img, index) => (
+      <button
+        key={index}
+        onClick={() => setSelectedImageIndex(index)}
+        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+          selectedImageIndex === index 
+            ? 'border-purple-600 ring-2 ring-purple-300' 
+            : 'border-gray-200 hover:border-gray-400'
+        }`}
+      >
+        {img.startsWith('http') ? (
+          <img 
+            src={img} 
+            alt={`View ${index + 1}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-2xl">
+            {product.image === 'necklace' && '💍'}
+            {product.image === 'kurti' && '👗'}
+            {/* ...other emojis... */}
+          </div>
+        )}
+      </button>
+    ))}
+  </div>
+)}
             </div>
 
             {/* ✅ RIGHT: PRODUCT INFO (Skechers Style) */}
@@ -1630,58 +1636,6 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
   );
 };
 
-      {/* IMAGE ZOOM MODAL */}
-      {showImageModal && product.images && product.images.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-[60] flex items-center justify-center p-4">
-          <button
-            onClick={() => setShowImageModal(false)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
-          >
-            <X className="w-8 h-8" />
-          </button>
-
-          {/* Image Counter */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white z-10 bg-black bg-opacity-50 px-4 py-2 rounded-full">
-            {modalImageIndex + 1} / {product.images.length}
-          </div>
-
-          {/* Main Image */}
-          <div className="relative w-full h-full flex items-center justify-center px-16">
-            <img
-              src={product.images[modalImageIndex]}
-              alt={`${product.name} - Image ${modalImageIndex + 1}`}
-              className="max-w-full max-h-[90vh] object-contain"
-              width={1200}
-              height={1200}
-              loading="lazy" // Add lazy loading
-             placeholder="blur" // Add blur placeholder
-             blurDataURL="data:image/svg+xml;base64,..." // Optional: add blur data
-             />
-
-          </div>
-
-          {/* Navigation Arrows */}
-          {product.images.length > 1 && (
-            <>
-              <button
-                onClick={() => setModalImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white text-black p-3 rounded-full hover:bg-gray-200 transition"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setModalImageIndex((prev) => (prev + 1) % product.images.length)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white text-black p-3 rounded-full hover:bg-gray-200 transition"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </>
-  );
-};
 
 // Cart Sidebar Component
 const CartSidebar = ({ show, onClose, setCurrentPage }) => {
