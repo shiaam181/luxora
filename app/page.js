@@ -1195,22 +1195,17 @@ const ProductCard = ({ product, showMoveToCart = false, onViewDetails, onCartOpe
 const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
   const { addToCart, toggleWishlist, isInWishlist, updateProduct, products, isAdminLoggedIn } = useStore();
   
-  // Get fresh product data from store
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const inWishlist = isInWishlist(product.id);
-
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [modalImageIndex, setModalImageIndex] = useState(0);
 
   // Review form states
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [editingReviewId, setEditingReviewId] = useState(null);
   
-  // Fix: Check if running on client
   const [isClient, setIsClient] = useState(false);
   React.useEffect(() => {
     setIsClient(true);
@@ -1220,170 +1215,249 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
 
   if (!product) return null;
 
+  // Get product images (custom or fallback)
+  const productImages = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.image]; // Fallback to emoji
+
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    alert('Added to cart!');
+    toast.success('Added to cart!');
   };
 
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}></div>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center z-10">
-            <h2 className="text-2xl font-bold text-gray-800">Product Details</h2>
-            <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 overflow-y-auto">
+        <div className="bg-white w-full h-full md:rounded-2xl md:max-w-6xl md:w-full md:max-h-[95vh] overflow-y-auto">
+          
+          {/* ✅ STICKY HEADER */}
+          <div className="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center z-20 shadow-sm">
+            <h2 className="text-lg md:text-2xl font-bold text-gray-800 truncate flex-1">Product Details</h2>
+            <button onClick={onClose} className="text-gray-600 hover:text-gray-800 p-2">
               <X className="w-6 h-6" />
             </button>
           </div>
 
-          <div className="p-6">
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Left: Images */}
-              <div>
-                <div 
-                  className="relative mb-4 cursor-pointer"
-                  onClick={() => {
-                    if (product.images && product.images.length > 0) {
-                      setModalImageIndex(selectedImage);
-                      setShowImageModal(true);
-                    }
-                  }}
-                >
-                  <ProductImage image={product.image} images={product.images} name={product.name} />
-                  {product.tags?.includes('new') && (
-                    <span className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      NEW
-                    </span>
-                  )}
-                  {product.images && product.images.length > 0 && (
-                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs">
-                      Click to zoom
+          <div className="md:grid md:grid-cols-2 md:gap-8 p-4 md:p-8">
+            
+            {/* ✅ LEFT: CLEAN IMAGE GALLERY */}
+            <div className="mb-6 md:mb-0">
+              {/* Main Image Display */}
+              <div className="relative mb-4 bg-gray-50 rounded-xl overflow-hidden border-2 border-gray-200">
+                <div className="aspect-square w-full flex items-center justify-center">
+                  {productImages[selectedImageIndex]?.startsWith('http') ? (
+                    <img 
+                      src={productImages[selectedImageIndex]} 
+                      alt={product.name}
+                      className="w-full h-full object-contain p-4"
+                    />
+                  ) : (
+                    // Fallback emoji display
+                    <div className="w-full h-full bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-8xl">
+                      {product.image === 'necklace' && '💍'}
+                      {product.image === 'kurti' && '👗'}
+                      {product.image === 'earrings' && '💂'}
+                      {product.image === 'handbag' && '👜'}
+                      {product.image === 'saree' && '🥻'}
+                      {product.image === 'sunglasses' && '🕶️'}
+                      {product.image === 'ring' && '💎'}
+                      {product.image === 'palazzo' && '👘'}
+                      {!product.image && <Package className="w-32 h-32 text-purple-400" />}
                     </div>
                   )}
                 </div>
+
+                {/* Badge Overlays */}
+                {product.tags?.includes('new') && (
+                  <span className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                    NEW
+                  </span>
+                )}
+                {product.tags?.includes('bestseller') && (
+                  <span className="absolute top-4 right-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center shadow-lg">
+                    <Award className="w-4 h-4 mr-1" /> Best Seller
+                  </span>
+                )}
               </div>
 
-              {/* Right: Details */}
+              {/* ✅ THUMBNAIL NAVIGATION (Skechers Style) */}
+              {productImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {productImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+                        selectedImageIndex === index 
+                          ? 'border-purple-600 ring-2 ring-purple-300' 
+                          : 'border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      {img.startsWith('http') ? (
+                        <img 
+                          src={img} 
+                          alt={`View ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-2xl">
+                          {product.image === 'necklace' && '💍'}
+                          {product.image === 'kurti' && '👗'}
+                          {/* ...other emojis... */}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ✅ RIGHT: PRODUCT INFO (Skechers Style) */}
+            <div className="space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{product.name}</h1>
                 
+                {/* Rating Section */}
                 <div className="flex items-center mb-4">
-                  <div className="flex items-center">
+                  <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`w-5 h-5 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                      <Star 
+                        key={i} 
+                        className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+                      />
                     ))}
+                    <span className="ml-2 text-sm font-semibold text-gray-700">{product.rating}</span>
                   </div>
-                  <span className="ml-2 text-gray-600">({product.rating}) • {product.reviews?.length || 0} reviews</span>
+                  <span className="ml-3 text-sm text-gray-600">
+                    {product.reviews?.length || 0} reviews
+                  </span>
                 </div>
+              </div>
 
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <span className="text-4xl font-bold text-yellow-600">₹{product.price}</span>
-                    {product.originalPrice > product.price && (
-                      <>
-                        <span className="text-xl text-gray-400 line-through">₹{product.originalPrice}</span>
-                        <span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
-                          {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-green-600 font-semibold">Inclusive of all taxes</p>
+              {/* Pricing Section */}
+              <div className="border-y py-4">
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="text-4xl font-bold text-gray-900">₹{product.price}</span>
+                  {product.originalPrice > product.price && (
+                    <>
+                      <span className="text-xl text-gray-400 line-through">₹{product.originalPrice}</span>
+                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                      </span>
+                    </>
+                  )}
                 </div>
+                <p className="text-green-600 font-semibold text-sm">(incl. of all taxes)</p>
+              </div>
 
-                <p className="text-gray-600 mb-6">{product.description}</p>
+              {/* Description */}
+              <div>
+                <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-  <h3 className="font-bold text-gray-800 mb-3">Key Features:</h3>
-  <ul className="space-y-2">
-    {Array.isArray(product.features) && product.features.length > 0 ? (
-      product.features.map((feature, index) => (
-        <li key={index} className="flex items-start">
-          <span className="text-purple-600 mr-2">✓</span>
-          <span className="text-gray-700">{feature}</span>
-        </li>
-      ))
-    ) : (
-      <li className="text-gray-500 text-sm">No features listed</li>
-    )}
-  </ul>
-</div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-purple-50 rounded-lg p-3">
-                    <p className="text-sm text-gray-600">Available Sizes</p>
-                    <p className="font-bold text-purple-600">{product.sizeRange || product.ageRange}</p>
-                  </div>
-                  <div className="bg-pink-50 rounded-lg p-3">
-                    <p className="text-sm text-gray-600">Stock</p>
-                    <p className="font-bold text-pink-600">{product.stock} units</p>
-                  </div>
+              {/* Features */}
+              {product.features && product.features.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-bold text-gray-800 mb-3">Key Features:</h3>
+                  <ul className="space-y-2">
+                    {product.features.map((feature, index) => (
+                      <li key={index} className="flex items-start text-sm">
+                        <span className="text-purple-600 mr-2">✓</span>
+                        <span className="text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+              )}
 
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex items-center border border-gray-300 rounded-lg">
+              {/* Size & Stock Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-purple-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-600 mb-1">Available Sizes</p>
+                  <p className="font-bold text-purple-600">{product.sizeRange || product.ageRange}</p>
+                </div>
+                <div className="bg-pink-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-600 mb-1">Stock Status</p>
+                  <p className={`font-bold ${product.stock < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                    {product.stock} units
+                  </p>
+                </div>
+              </div>
+
+              {/* Quantity Selector & Action Buttons */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-4">
+                  {/* Quantity Selector */}
+                  <div className="flex items-center border-2 border-gray-300 rounded-lg overflow-hidden">
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-4 py-2 hover:bg-gray-100"
+                      className="px-4 py-3 hover:bg-gray-100 transition"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="px-6 py-2 font-semibold">{quantity}</span>
+                    <span className="px-6 py-3 font-bold text-lg border-x-2 border-gray-300">{quantity}</span>
                     <button 
                       onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                      className="px-4 py-2 hover:bg-gray-100"
+                      className="px-4 py-3 hover:bg-gray-100 transition"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={product.stock === 0}
-                    className={`flex-1 ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'} text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center`}
-                  >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                  </button>
+
+                  {/* Wishlist Button */}
                   <button
                     onClick={() => toggleWishlist(product)}
-                    className={`${inWishlist ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'} p-3 rounded-lg hover:scale-110 transition`}
+                    className={`${inWishlist ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'} p-3 rounded-lg hover:scale-110 transition shadow-md`}
                   >
-                    <Heart className="w-5 h-5" fill={inWishlist ? 'currentColor' : 'none'} />
+                    <Heart className="w-6 h-6" fill={inWishlist ? 'currentColor' : 'none'} />
                   </button>
                 </div>
 
-                {/* Delivery Info */}
-                <div className="border-t pt-6 space-y-3">
-                  <div className="flex items-center text-gray-700">
-                    <Truck className="w-5 h-5 mr-3 text-green-600" />
-                    <span>Free Delivery on orders above ₹999</span>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <RotateCcw className="w-5 h-5 mr-3 text-blue-600" />
-                    <span>7 Days Easy Return Policy</span>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <ShieldCheck className="w-5 h-5 mr-3 text-purple-600" />
-                    <span>100% Safe & Secure Products</span>
-                  </div>
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className={`w-full ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'} text-white px-6 py-4 rounded-lg font-bold text-lg transition flex items-center justify-center shadow-lg`}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                </button>
+              </div>
+
+              {/* Delivery Info */}
+              <div className="border-t pt-6 space-y-3">
+                <div className="flex items-center text-gray-700">
+                  <Truck className="w-5 h-5 mr-3 text-green-600" />
+                  <span className="text-sm">Free Delivery on all orders</span>
+                </div>
+                <div className="flex items-center text-gray-700">
+                  <RotateCcw className="w-5 h-5 mr-3 text-blue-600" />
+                  <span className="text-sm">7 Days Easy Return Policy</span>
+                </div>
+                <div className="flex items-center text-gray-700">
+                  <ShieldCheck className="w-5 h-5 mr-3 text-purple-600" />
+                  <span className="text-sm">100% Safe & Secure Products</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Reviews Section - ONLY RENDER ON CLIENT */}
-            {isClient && (
-              <div className="mt-8 border-t pt-8">
+          {/* Reviews Section */}
+          {isClient && (
+            <div className="px-4 md:px-8 pb-8">
+              <div className="border-t pt-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-2xl font-bold text-gray-800">Customer Reviews</h3>
                   <button 
                     onClick={() => setShowReviewForm(!showReviewForm)}
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm md:text-base"
                   >
                     Write a Review
                   </button>
                 </div>
 
+                {/* Review Form */}
                 {showReviewForm && (
                   <div className="bg-gray-50 rounded-lg p-6 mb-6">
                     <h4 className="font-bold mb-4">{editingReviewId ? 'Edit Your Review' : 'Share Your Experience'}</h4>
@@ -1414,35 +1488,34 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
                         <button 
                           className="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition"
                           onClick={() => {
-  if (reviewRating === 0) {
-    alert('Please select a rating');
-    return;
-  }
-  if (reviewText.trim() === '') {
-    alert('Please write a review');
-    return;
-  }
-  
-  // Ensure reviews is an array
-  const currentReviews = Array.isArray(product.reviews) ? product.reviews : [];
-  let updatedReviews;
-  
-  if (editingReviewId) {
-    updatedReviews = currentReviews.map(r => 
-      r.id === editingReviewId 
-        ? { ...r, rating: reviewRating, comment: reviewText, date: new Date().toISOString() }
-        : r
-    );
-  } else {
-    const newReview = {
-      id: Date.now(),
-      user: CURRENT_USER,
-      rating: reviewRating,
-      comment: reviewText,
-      date: new Date().toISOString()
-    };
-    updatedReviews = [...currentReviews, newReview];
-  }
+                            if (reviewRating === 0) {
+                              toast.error('Please select a rating');
+                              return;
+                            }
+                            if (reviewText.trim() === '') {
+                              toast.error('Please write a review');
+                              return;
+                            }
+                            
+                            const currentReviews = Array.isArray(product.reviews) ? product.reviews : [];
+                            let updatedReviews;
+                            
+                            if (editingReviewId) {
+                              updatedReviews = currentReviews.map(r => 
+                                r.id === editingReviewId 
+                                  ? { ...r, rating: reviewRating, comment: reviewText, date: new Date().toISOString() }
+                                  : r
+                              );
+                            } else {
+                              const newReview = {
+                                id: Date.now(),
+                                user: CURRENT_USER,
+                                rating: reviewRating,
+                                comment: reviewText,
+                                date: new Date().toISOString()
+                              };
+                              updatedReviews = [...currentReviews, newReview];
+                            }
                             
                             const avgRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
                             
@@ -1451,7 +1524,7 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
                               rating: parseFloat(avgRating.toFixed(1))
                             });
                             
-                            alert(editingReviewId ? 'Review updated!' : 'Thank you for your review!');
+                            toast.success(editingReviewId ? 'Review updated!' : 'Thank you for your review!');
                             setReviewRating(0);
                             setReviewText('');
                             setEditingReviewId(null);
@@ -1477,81 +1550,85 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
                   </div>
                 )}
 
+                {/* Reviews List */}
                 <div className="space-y-4">
-  {Array.isArray(product.reviews) && product.reviews.length > 0 ? (
-    product.reviews.map(review => {
-      const isReviewOwner = review.user === CURRENT_USER;
-      const showEditDelete = isReviewOwner || isAdminLoggedIn;
-      
-      return (
-        <div key={review.id} className="bg-gray-50 rounded-lg p-4">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <p className="font-bold text-gray-800">{review.user}</p>
-              <div className="flex items-center mt-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString()}</span>
-              
-              {showEditDelete && (
-                <div className="flex gap-2">
-                  {isReviewOwner && (
-                    <button
-                      onClick={() => {
-                        setReviewRating(review.rating);
-                        setReviewText(review.comment);
-                        setEditingReviewId(review.id);
-                        setShowReviewForm(true);
-                      }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
-                  )}
-                  {(isReviewOwner || isAdminLoggedIn) && (
-                    <button
-                      onClick={() => {
-                        if (confirm('Delete this review?')) {
-                          const updatedReviews = product.reviews.filter(r => r.id !== review.id);
-                          const avgRating = updatedReviews.length > 0 
-                            ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length 
-                            : 0;
-                          
-                          updateProduct(product.id, {
-                            reviews: updatedReviews,
-                            rating: parseFloat(avgRating.toFixed(1))
-                          });
-                          alert('Review deleted!');
-                        }
-                      }}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
+                  {Array.isArray(product.reviews) && product.reviews.length > 0 ? (
+                    product.reviews.map(review => {
+                      const isReviewOwner = review.user === CURRENT_USER;
+                      const showEditDelete = isReviewOwner || isAdminLoggedIn;
+                      
+                      return (
+                        <div key={review.id} className="bg-gray-50 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-bold text-gray-800">{review.user}</p>
+                              <div className="flex items-center mt-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString()}</span>
+                              
+                              {showEditDelete && (
+                                <div className="flex gap-2">
+                                  {isReviewOwner && (
+                                    <button
+                                      onClick={() => {
+                                        setReviewRating(review.rating);
+                                        setReviewText(review.comment);
+                                        setEditingReviewId(review.id);
+                                        setShowReviewForm(true);
+                                      }}
+                                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-blue-600"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                  {(isReviewOwner || isAdminLoggedIn) && (
+                                    <button
+                                      onClick={() => {
+                                        if (confirm('Delete this review?')) {
+                                          const updatedReviews = product.reviews.filter(r => r.id !== review.id);
+                                          const avgRating = updatedReviews.length > 0 
+                                            ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length 
+                                            : 0;
+                                          
+                                          updateProduct(product.id, {
+                                            reviews: updatedReviews,
+                                            rating: parseFloat(avgRating.toFixed(1))
+                                          });
+                                          toast.success('Review deleted!');
+                                        }
+                                      }}
+                                      className="bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-red-600"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-gray-700">{review.comment}</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No reviews yet. Be the first to review!</p>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-          <p className="text-gray-700">{review.comment}</p>
-        </div>
-      );
-    })
-  ) : (
-    <div className="text-center py-8 text-gray-500">
-      <p>No reviews yet. Be the first to review!</p>
-    </div>
-  )}
-</div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
+    </>
+  );
+};
 
       {/* IMAGE ZOOM MODAL */}
       {showImageModal && product.images && product.images.length > 0 && (
