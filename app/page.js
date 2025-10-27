@@ -4515,130 +4515,54 @@ const AdminProducts = () => {
   const [importedData, setImportedData] = useState(null);
 
 
-  // 🆕 NEW: Smart Product Import Function
-  const handleImportProduct = async () => {
-    if (!importUrl.trim()) {
-      toast.error('Please enter a product URL');
-      return;
+ // 🆕 NEW: Smart Import Function
+const handleImportProduct = async () => {
+  if (!importUrl.trim()) {
+    toast.error('Please enter a product URL');
+    return;
+  }
+  
+  if (!importUrl.includes('meesho.com')) {
+    toast.error('Only Meesho URLs supported with backend scraper');
+    return;
+  }
+  
+  setIsImporting(true);
+  toast.loading('Fetching product from Meesho...', { id: 'import' });
+  
+  try {
+    // Call your backend scraper
+    const response = await fetch('http://localhost:3001/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: importUrl })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Scraping failed');
     }
     
-    setIsImporting(true);
+    const productData = {
+      ...result.data,
+      category: 'Ethnic',
+      stock: 20,
+      tags: ['new'],
+      sizeRange: 'Free Size',
+      dimensions: 'Standard'
+    };
     
-    try {
-      // Detect platform
-      let platform = 'unknown';
-      if (importUrl.includes('amazon.')) platform = 'amazon';
-      else if (importUrl.includes('flipkart.')) platform = 'flipkart';
-      else if (importUrl.includes('myntra.')) platform = 'myntra';
-      else if (importUrl.includes('meesho.')) platform = 'meesho';
-      
-      if (platform === 'unknown') {
-        toast.error('Unsupported platform. Use Amazon, Flipkart, Myntra, or Meesho links.');
-        setIsImporting(false);
-        return;
-      }
-      
-      // 🔥 SPECIAL: For Meesho, use manual mode (better success rate)
-      if (platform === 'meesho') {
-        toast.info('Meesho detected! Opening manual import...', { id: 'import' });
-        setIsImporting(false);
-        
-        // Pre-fill with basic data
-        setImportedData({
-          name: '',
-          price: 0,
-          originalPrice: 0,
-          description: 'Imported from Meesho - Add details',
-          images: [],
-          features: ['', '', '', ''],
-          category: 'Ethnic',
-          stock: 10,
-          tags: []
-        });
-        return;
-      }
-      
-      toast.loading('Fetching product details...', { id: 'import' });
-      
-      // 🔥 SCRAPING API CALL
-      const response = await fetch(`https://api.scraperapi.com/?api_key=5ea47bda05f13e474c4f6b6262bf399f&url=${encodeURIComponent(importUrl)}`);
-      const html = await response.text();
-      
-      // Parse HTML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      
-      let productData = {};
-      
-      if (platform === 'amazon') {
-        productData = {
-          name: doc.querySelector('#productTitle')?.textContent?.trim() || 'Imported Product',
-          price: parseFloat(doc.querySelector('.a-price-whole')?.textContent?.replace(/[^0-9]/g, '') || '999'),
-          originalPrice: parseFloat(doc.querySelector('.a-text-price .a-offscreen')?.textContent?.replace(/[^0-9]/g, '') || '1499'),
-          description: doc.querySelector('#feature-bullets')?.textContent?.trim() || 'Imported from Amazon',
-          images: Array.from(doc.querySelectorAll('#altImages img')).map(img => img.src).filter(src => src && !src.includes('pixel')),
-          features: Array.from(doc.querySelectorAll('#feature-bullets li')).map(li => li.textContent.trim()).slice(0, 4),
-          category: 'Ethnic',
-          stock: 10,
-          tags: []
-        };
-      } else if (platform === 'flipkart') {
-        productData = {
-          name: doc.querySelector('.B_NuCI')?.textContent?.trim() || 'Imported Product',
-          price: parseFloat(doc.querySelector('._30jeq3')?.textContent?.replace(/[^0-9]/g, '') || '999'),
-          originalPrice: parseFloat(doc.querySelector('._3I9_wc')?.textContent?.replace(/[^0-9]/g, '') || '1499'),
-          description: doc.querySelector('._1mXcCf')?.textContent?.trim() || 'Imported from Flipkart',
-          images: Array.from(doc.querySelectorAll('._2r_T1I img')).map(img => img.src),
-          features: Array.from(doc.querySelectorAll('._21Ahn- li')).map(li => li.textContent.trim()).slice(0, 4),
-          category: 'Ethnic',
-          stock: 10,
-          tags: []
-        };
-      } else if (platform === 'meesho') {
-        productData = {
-          name: doc.querySelector('h1.sc-eDvSVe')?.textContent?.trim() || 
-                doc.querySelector('[data-testid="product-title"]')?.textContent?.trim() || 
-                'Imported Product',
-          price: parseFloat(
-            (doc.querySelector('.sc-jXbUNg')?.textContent || 
-             doc.querySelector('[data-testid="product-price"]')?.textContent || 
-             '999').replace(/[^0-9]/g, '')
-          ),
-          originalPrice: parseFloat(
-            (doc.querySelector('.sc-fujyAs')?.textContent || 
-             doc.querySelector('[data-testid="product-original-price"]')?.textContent || 
-             '1499').replace(/[^0-9]/g, '')
-          ),
-          description: doc.querySelector('.sc-hBUSln')?.textContent?.trim() || 
-                       doc.querySelector('[data-testid="product-description"]')?.textContent?.trim() || 
-                       'Imported from Meesho',
-          images: Array.from(doc.querySelectorAll('.sc-fotOHu img, [data-testid="product-image"]')).map(img => img.src || img.dataset.src),
-          features: Array.from(doc.querySelectorAll('.sc-gKAaRy li, [data-testid="product-features"] li')).map(li => li.textContent.trim()).slice(0, 4),
-          category: 'Ethnic',
-          stock: 10,
-          tags: []
-        };
-      }
-      
-      // Filter out invalid images
-      productData.images = productData.images.filter(img => img && img.startsWith('http'));
-      
-      if (!productData.name || productData.name === 'Imported Product') {
-        toast.error('Failed to extract product details. Try manually.', { id: 'import' });
-        setIsImporting(false);
-        return;
-      }
-      
-      setImportedData(productData);
-      toast.success('Product imported! Review and save.', { id: 'import' });
-      
-    } catch (error) {
-      console.error('Import error:', error);
-      toast.error('Import failed. Check console for details.', { id: 'import' });
-    } finally {
-      setIsImporting(false);
-    }
-  };
+    setImportedData(productData);
+    toast.success('Product imported! Review and save.', { id: 'import' });
+    
+  } catch (error) {
+    console.error('Import error:', error);
+    toast.error(error.message || 'Failed to import product', { id: 'import' });
+  } finally {
+    setIsImporting(false);
+  }
+};
 
   const handleDeleteProduct = async (productId) => {
     if (!confirm('Delete this product?')) return;
