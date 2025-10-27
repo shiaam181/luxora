@@ -321,7 +321,7 @@ React.useEffect(() => {
   loadDataFromFirebase();
 }, []);
 
-const loadDataFromFirebase = async () => {
+const loadDataFromFirebase = useCallback(async () => {
   setLoading(true);
   try {
     // Load products
@@ -388,12 +388,11 @@ const loadDataFromFirebase = async () => {
   } catch (error) {
     console.error('Error loading data:', error);
     setProducts(INITIAL_PRODUCTS);
-    // 🔧 Ensure categories is always an array even on error
     setCategories(['Ethnic', 'Casual', 'Western', 'Jewelry', 'Accessories', 'Footwear']);
   } finally {
     setLoading(false);
   }
-};
+}, []);
 
 const seedInitialProducts = async () => {
   for (const product of INITIAL_PRODUCTS) {
@@ -930,21 +929,23 @@ const Header = ({ setCurrentPage, setShowCart }) => {
       {/* Top Announcement Bar */}
       <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white py-2">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2 text-sm font-semibold animate-pulse">
-            <ShieldCheck className="w-4 h-4" />
-            <span>🎉 FREE Cash on Delivery Available on ALL Orders!</span>
-            <Truck className="w-4 h-4" />
+          <div className="flex items-center justify-center gap-2 text-xs md:text-sm font-semibold animate-pulse">
+            <ShieldCheck className="w-3 h-3 md:w-4 md:h-4" />
+            <span className="text-center">🎉 FREE Cash on Delivery on ALL Orders!</span>
+            <Truck className="w-3 h-3 md:w-4 md:h-4" />
           </div>
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setCurrentPage('home')}>
-            <Package className="w-8 h-8" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse">Luxora</h1>
+          {/* Logo - Smaller on mobile */}
+          <div className="flex items-center space-x-1 md:space-x-2 cursor-pointer" onClick={() => setCurrentPage('home')}>
+            <Package className="w-6 h-6 md:w-8 md:h-8" />
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse">Luxora</h1>
           </div>
 
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-6">
             <button onClick={() => setCurrentPage('home')} className="hover:text-yellow-500 transition flex items-center space-x-1">
               <Home className="w-5 h-5" />
@@ -954,35 +955,34 @@ const Header = ({ setCurrentPage, setShowCart }) => {
               <Package className="w-5 h-5" />
               <span>Products</span>
             </button>
-            
             <button onClick={() => setCurrentPage('orders')} className="hover:text-yellow-300 transition flex items-center space-x-1">
               <Clock className="w-5 h-5" />
               <span>Orders</span>
             </button>
-
           </nav>
 
-          <div className="flex items-center space-x-4">
+          {/* Mobile + Desktop Icons */}
+          <div className="flex items-center space-x-2 md:space-x-4">
             {compareList.length > 0 && (
-              <button onClick={() => setCurrentPage('compare')} className="relative hover:text-yellow-300 transition hidden md:block">
-                <Filter className="w-6 h-6" />
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <button onClick={() => setCurrentPage('compare')} className="relative hover:text-yellow-300 transition hidden sm:block">
+                <Filter className="w-5 h-5 md:w-6 md:h-6" />
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center">
                   {compareList.length}
                 </span>
               </button>
             )}
             <button onClick={() => setCurrentPage('wishlist')} className="relative hover:text-yellow-300 transition">
-              <Heart className="w-6 h-6" />
+              <Heart className="w-5 h-5 md:w-6 md:h-6" />
               {wishlist.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center">
                   {wishlist.length}
                 </span>
               )}
             </button>
             <button onClick={() => setShowCart(true)} className="relative hover:text-yellow-300 transition">
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
@@ -993,20 +993,20 @@ const Header = ({ setCurrentPage, setShowCart }) => {
           </div>
         </div>
 
+        {/* Mobile Menu - Full width */}
         {showMobileMenu && (
-          <nav className="md:hidden mt-4 flex flex-col space-y-2">
-            <button onClick={() => { setCurrentPage('home'); setShowMobileMenu(false); }} className="text-left py-2 hover:text-yellow-300">
+          <nav className="md:hidden mt-4 flex flex-col space-y-2 pb-2">
+            <button onClick={() => { setCurrentPage('home'); setShowMobileMenu(false); }} className="text-left py-2 px-3 hover:text-yellow-300 hover:bg-gray-800 rounded-lg transition">
               Home
             </button>
-            <button onClick={() => { setCurrentPage('products'); setShowMobileMenu(false); }} className="text-left py-2 hover:text-yellow-300">
+            <button onClick={() => { setCurrentPage('products'); setShowMobileMenu(false); }} className="text-left py-2 px-3 hover:text-yellow-300 hover:bg-gray-800 rounded-lg transition">
               Products
             </button>
-            <button onClick={() => { setCurrentPage('orders'); setShowMobileMenu(false); }} className="text-left py-2 hover:text-yellow-300">
+            <button onClick={() => { setCurrentPage('orders'); setShowMobileMenu(false); }} className="text-left py-2 px-3 hover:text-yellow-300 hover:bg-gray-800 rounded-lg transition">
               Orders
             </button>
-            
             {compareList.length > 0 && (
-              <button onClick={() => { setCurrentPage('compare'); setShowMobileMenu(false); }} className="text-left py-2 hover:text-yellow-300">
+              <button onClick={() => { setCurrentPage('compare'); setShowMobileMenu(false); }} className="text-left py-2 px-3 hover:text-yellow-300 hover:bg-gray-800 rounded-lg transition">
                 Compare ({compareList.length})
               </button>
             )}
@@ -1018,99 +1018,40 @@ const Header = ({ setCurrentPage, setShowCart }) => {
 };
 
 // Product Image Component
+
 const ProductImage = ({ image, images, name }) => {
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-  const [imageError, setImageError] = React.useState(false);
-
-  // Safe images array with validation
-  const safeImages = React.useMemo(() => {
-    if (!images || !Array.isArray(images)) return [];
-    return images.filter(img => typeof img === 'string' && img.length > 0);
-  }, [images]);
-
-  // Safe index calculation
-  const safeIndex = Math.min(Math.max(0, currentImageIndex), safeImages.length - 1);
-
-  // Show uploaded images if available
-  if (safeImages.length > 0 && !imageError) {
+  // If custom images exist, show first image
+  if (images && images.length > 0) {
     return (
-      <div className="relative w-full h-48 bg-gray-100 overflow-hidden group">
-        <img 
-          src={safeImages[safeIndex]}
-          alt={`${name} - Image ${safeIndex + 1}`}
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
-        
-        {/* Navigation arrows - only show if multiple images */}
-        {safeImages.length > 1 && (
-          <>
-            <button
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                setCurrentImageIndex((prev) => 
-                  prev === 0 ? safeImages.length - 1 : prev - 1
-                ); 
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-black/70"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            <button
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                setCurrentImageIndex((prev) => 
-                  prev === safeImages.length - 1 ? 0 : prev + 1
-                ); 
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-black/70"
-              aria-label="Next image"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            
-            {/* Dot indicators */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {safeImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
-                  className={`w-2 h-2 rounded-full transition ${
-                    idx === safeIndex ? 'bg-white' : 'bg-white/50'
-                  }`}
-                  aria-label={`Go to image ${idx + 1}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <img 
+        src={images[0]} 
+        alt={name} 
+        className="w-full h-48 object-cover"
+        width={400}
+        height={300}
+      />
     );
   }
-
-  // Fallback to emoji icons for old products without images
-  const imageMap = {
-    necklace: '💍',
-    kurti: '👗',
-    earrings: '👂',
-    handbag: '👜',
-    saree: '🥻',
-    sunglasses: '🕶️',
-    ring: '💎',
-    palazzo: '👘'
+  
+  // Fallback to emoji-based images
+  const emojiMap = {
+    'necklace': '💍',
+    'kurti': '👗',
+    'earrings': '💂',
+    'handbag': '👜',
+    'saree': '🥻',
+    'sunglasses': '🕶️',
+    'ring': '💎',
+    'palazzo': '👘'
   };
-
+  
   return (
     <div className="w-full h-48 bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center text-6xl">
-      {imageMap[image] || '📦'}
+      {emojiMap[image] || <Package className="w-16 h-16 text-purple-400" />}
     </div>
   );
 };
 
-// Product Card Component
 const ProductCard = ({ product, showMoveToCart = false, onViewDetails, onCartOpen }) => {
   const { addToCart, toggleWishlist, isInWishlist, moveWishlistToCart, toggleCompare, isInCompare, isFirstCartAdd, setIsFirstCartAdd } = useStore();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -1145,68 +1086,76 @@ const ProductCard = ({ product, showMoveToCart = false, onViewDetails, onCartOpe
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative cursor-pointer" onClick={() => onViewDetails && onViewDetails(product)}>
         <ProductImage image={product.image} images={product.images} name={product.name} />
         <button
           onClick={handleToggleWishlist}
           disabled={isTogglingWishlist}
-          className={`absolute top-2 right-2 p-2 rounded-full ${inWishlist ? 'bg-red-500 text-white' : 'bg-white text-gray-700'} hover:scale-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
+          className={`absolute top-2 right-2 p-2 rounded-full ${inWishlist ? 'bg-red-500 text-white' : 'bg-white text-gray-700'} hover:scale-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg`}
         >
           {isTogglingWishlist ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
           ) : (
-            <Heart className="w-5 h-5" fill={inWishlist ? 'currentColor' : 'none'} />
+            <Heart className="w-4 h-4 md:w-5 md:h-5" fill={inWishlist ? 'currentColor' : 'none'} />
           )}
         </button>
-        <span className="absolute top-2 left-2 bg-black text-yellow-400 px-3 py-1 rounded-full text-sm font-semibold border border-yellow-500">
+        <span className="absolute top-2 left-2 bg-black text-yellow-400 px-2 py-1 rounded-full text-xs font-semibold border border-yellow-500">
           {product.category}
         </span>
         {discount > 0 && (
-          <span className="absolute top-12 left-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+          <span className="absolute top-10 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
             {discount}% OFF
           </span>
         )}
         {product.stock < 10 && (
-          <span className="absolute bottom-2 left-2 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <span className="absolute bottom-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
             Only {product.stock} left!
           </span>
         )}
         {product.tags?.includes('bestseller') && (
-          <span className="absolute bottom-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center">
-            <Award className="w-3 h-3 mr-1" /> Bestseller
+          <span className="absolute bottom-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center">
+            <Award className="w-3 h-3 mr-1" /> Best
           </span>
         )}
       </div>
-      <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-2 cursor-pointer hover:text-purple-600" onClick={() => onViewDetails && onViewDetails(product)}>
+      
+      {/* 📱 MOBILE-OPTIMIZED CONTENT */}
+      <div className="p-3 md:p-4">
+        <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-1 md:mb-2 cursor-pointer hover:text-purple-600 line-clamp-2" onClick={() => onViewDetails && onViewDetails(product)}>
           {product.name}
         </h3>
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-        <div className="flex items-center mb-3">
+        <p className="text-gray-600 text-xs md:text-sm mb-2 line-clamp-2">{product.description}</p>
+        
+        {/* Rating - Compact for mobile */}
+        <div className="flex items-center mb-2">
           <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+              <Star key={i} className={`w-3 h-3 md:w-4 md:h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
             ))}
           </div>
-          <span className="ml-2 text-sm text-gray-600">({product.rating}) • {product.reviews?.length || 0} reviews</span>
+          <span className="ml-1 md:ml-2 text-xs md:text-sm text-gray-600">({product.rating})</span>
         </div>
-        <div className="flex items-center justify-between mb-3">
+        
+        {/* Price - Larger on mobile for easy reading */}
+        <div className="flex items-center justify-between mb-2 md:mb-3">
           <div>
-            <span className="text-2xl font-bold text-yellow-600">₹{product.price}</span>
+            <span className="text-xl md:text-2xl font-bold text-yellow-600">₹{product.price}</span>
             {product.originalPrice > product.price && (
-              <span className="ml-2 text-sm text-gray-400 line-through">₹{product.originalPrice}</span>
+              <span className="ml-1 md:ml-2 text-xs md:text-sm text-gray-400 line-through">₹{product.originalPrice}</span>
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        
+        {/* Buttons - Stack on very small screens */}
+        <div className="flex flex-col sm:flex-row gap-2">
           {showMoveToCart ? (
             <button
               onClick={() => moveWishlistToCart(product)}
               disabled={product.stock === 0}
-              className={`flex-1 ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black border-2 border-yellow-500 hover:border-yellow-400'} text-white px-4 py-2 rounded-lg transition flex items-center justify-center space-x-1`}
+              className={`flex-1 ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black border-2 border-yellow-500 hover:border-yellow-400'} text-white px-3 py-2 md:px-4 md:py-2 rounded-lg transition flex items-center justify-center text-sm md:text-base`}
             >
-              <ShoppingCart className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4 mr-1" />
               <span>Move to Cart</span>
             </button>
           ) : (
@@ -1214,14 +1163,14 @@ const ProductCard = ({ product, showMoveToCart = false, onViewDetails, onCartOpe
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0 || isAddingToCart}
-                className={`flex-1 ${product.stock === 0 || isAddingToCart ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black border-2 border-yellow-500 hover:border-yellow-400'} text-white px-4 py-2 rounded-lg transition flex items-center justify-center space-x-1`}
+                className={`flex-1 ${product.stock === 0 || isAddingToCart ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black border-2 border-yellow-500 hover:border-yellow-400'} text-white px-3 py-2 md:px-4 md:py-2 rounded-lg transition flex items-center justify-center text-sm md:text-base`}
               >
                 {isAddingToCart ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 ) : (
                   <>
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>{product.stock === 0 ? 'Out of Stock' : 'Add'}</span>
+                    <ShoppingCart className="w-4 h-4 mr-1" />
+                    <span>{product.stock === 0 ? 'Out' : 'Add'}</span>
                   </>
                 )}
               </button>
@@ -1235,8 +1184,10 @@ const ProductCard = ({ product, showMoveToCart = false, onViewDetails, onCartOpe
             </>
           )}
         </div>
-        <p className={`text-sm mt-2 ${product.stock < 10 ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-          Stock: {product.stock} units
+        
+        {/* Stock - More visible on mobile */}
+        <p className={`text-xs md:text-sm mt-2 ${product.stock < 10 ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+          Stock: {product.stock}
         </p>
       </div>
     </div>
@@ -1622,7 +1573,7 @@ const ProductDetailsModal = ({ product: initialProduct, onClose }) => {
 
           {/* Main Image */}
           <div className="relative w-full h-full flex items-center justify-center px-16">
-            <Image
+            <img
               src={product.images[modalImageIndex]}
               alt={`${product.name} - Image ${modalImageIndex + 1}`}
               className="max-w-full max-h-[90vh] object-contain"
@@ -1718,7 +1669,7 @@ const CartSidebar = ({ show, onClose, setCurrentPage }) => {
                   <div key={item.id} className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
                     <div className="w-16 h-16 bg-gradient-to-br from-purple-200 to-pink-200 rounded flex items-center justify-center flex-shrink-0 text-2xl overflow-hidden">
   {item.images && item.images.length > 0 ? (
-    <Image src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={64} height={64} />
+    <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={64} height={64} />
   ) : (
     <>
       {item.image === 'necklace' && '💍'}
@@ -1910,7 +1861,7 @@ const HomePage = ({ setCurrentPage, setSelectedProduct, setShowCart }) => {
               View All <ChevronRight className="w-5 h-5 ml-1" />
             </button>
           </div>
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
      
 {products.filter(p => p.tags?.includes('bestseller')).map((product, index) => (
   <ProductCard 
@@ -1928,7 +1879,7 @@ const HomePage = ({ setCurrentPage, setSelectedProduct, setShowCart }) => {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">New Arrivals</h2>
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {products.filter(p => p.tags?.includes('bestseller')).map((product, index) => (
   <ProductCard 
     key={`product-${product.id || product._id}-${index}`}  // ✅ index now defined
@@ -1946,7 +1897,7 @@ const HomePage = ({ setCurrentPage, setSelectedProduct, setShowCart }) => {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold mb-12">Recently Viewed</h2>
-            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {recentlyViewed.slice(0, 4).map((product, index) => (
                  <ProductCard 
     key={`product-${product.id || product._id}-${index}`}
@@ -2122,7 +2073,7 @@ const ProductsPage = ({ setSelectedProduct, setShowCart }) => {
             <p className="text-xl text-gray-600">No products found</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filteredProducts.map((product, index) => (
   <ProductCard 
     key={`product-${product.id || product._id}-${index}`}  // ✅ index now defined
@@ -2158,7 +2109,7 @@ const WishlistPage = ({ setSelectedProduct, setShowCart }) => {
             <div className="mb-6">
               <p className="text-gray-600">{wishlist.length} item(s) in your wishlist</p>
             </div>
-            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {wishlist.map((product, index) => (
                   <ProductCard 
     key={`product-${product.id || product._id}-${index}`}
@@ -2340,7 +2291,7 @@ const OrdersPage = () => {
                         <div className="flex items-center gap-3">
                           <div className="w-16 h-16 bg-gradient-to-br from-purple-200 to-pink-200 rounded flex items-center justify-center text-2xl overflow-hidden">
                           {item.images && item.images.length > 0 ? (
-                          <Image src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={64} height={64} />
+                          <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={64} height={64} />
                           ) : (
                           <>
                           {item.image === 'necklace' && '💍'}
@@ -4489,6 +4440,26 @@ const AdminProducts = () => {
         return;
       }
       
+      // 🔥 SPECIAL: For Meesho, use manual mode (better success rate)
+      if (platform === 'meesho') {
+        toast.info('Meesho detected! Opening manual import...', { id: 'import' });
+        setIsImporting(false);
+        
+        // Pre-fill with basic data
+        setImportedData({
+          name: '',
+          price: 0,
+          originalPrice: 0,
+          description: 'Imported from Meesho - Add details',
+          images: [],
+          features: ['', '', '', ''],
+          category: 'Ethnic',
+          stock: 10,
+          tags: []
+        });
+        return;
+      }
+      
       toast.loading('Fetching product details...', { id: 'import' });
       
       // 🔥 SCRAPING API CALL
@@ -4746,25 +4717,47 @@ const AdminProducts = () => {
       </div>
 
       {showAddModal && (
-        <ProductFormModal
-          onClose={() => setShowAddModal(false)}
-          onSave={(product) => {
-            addProduct(product);
-            setShowAddModal(false);
-          }}
-        />
-      )}
+  <ProductFormModal
+    onClose={() => setShowAddModal(false)}
+    onSave={async (product) => {
+      try {
+        await addProduct(product);
+        setShowAddModal(false);
+        
+        // Force refresh from Firebase
+        const freshProducts = await getAll('products');
+        setProducts(freshProducts);
+        
+        toast.success('Product added successfully!');
+      } catch (error) {
+        console.error('Add error:', error);
+        toast.error('Failed to add product');
+      }
+    }}
+  />
+)}
 
       {editingProduct && (
-        <ProductFormModal
-          product={editingProduct}
-          onClose={() => setEditingProduct(null)}
-          onSave={(updatedProduct) => {
-            updateProduct(editingProduct.id, updatedProduct);
-            setEditingProduct(null);
-          }}
-        />
-      )}
+  <ProductFormModal
+    product={editingProduct}
+    onClose={() => setEditingProduct(null)}
+    onSave={async (updatedProduct) => {
+      try {
+        await updateProduct(editingProduct.id, updatedProduct);
+        setEditingProduct(null);
+        
+        // Force refresh from Firebase
+        const freshProducts = await getAll('products');
+        setProducts(freshProducts);
+        
+        toast.success('Product updated and refreshed!');
+      } catch (error) {
+        console.error('Update error:', error);
+        toast.error('Failed to update product');
+      }
+    }}
+  />
+)}
 
       {/* 🆕 NEW: Smart Import Modal */}
       {showImportModal && (
@@ -4945,7 +4938,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
   dimensions: product?.dimensions || '',
   tags: Array.isArray(product?.tags) ? product.tags : []
 });
-
+  
 
   const availableTags = ['bestseller', 'new', 'trending'];
   const [isSaving, setIsSaving] = useState(false);
@@ -5075,17 +5068,52 @@ const handleImageUpload = async (e) => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validate required fields
+  if (!formData.name?.trim()) {
+    toast.error('Product name is required');
+    return;
+  }
+  
+  if (!formData.price || formData.price <= 0) {
+    toast.error('Valid price is required');
+    return;
+  }
+  
+  if (!formData.stock || formData.stock < 0) {
+    toast.error('Valid stock quantity is required');
+    return;
+  }
+  
+  setIsSaving(true);
+  
+  try {
     const finalData = {
       ...formData,
-      price: parseFloat(formData.price),
-      originalPrice: parseFloat(formData.originalPrice),
-      stock: parseInt(formData.stock),
-      features: formData.features.filter(f => f.trim() !== '')
+      price: parseFloat(formData.price) || 0,
+      originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
+      stock: parseInt(formData.stock) || 0,
+      features: Array.isArray(formData.features) ? formData.features.filter(f => f && f.trim() !== '') : [],
+      images: Array.isArray(formData.images) ? formData.images : [],
+      tags: Array.isArray(formData.tags) ? formData.tags : []
     };
-    onSave(finalData);
-  };
+    
+    console.log('💾 Saving product:', finalData);
+    
+    await onSave(finalData);
+    
+    toast.success(product ? 'Product updated!' : 'Product added!');
+
+    
+  } catch (error) {
+    console.error('❌ Save error:', error);
+    toast.error('Failed to save product: ' + error.message);
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   return (
     <>
@@ -5198,7 +5226,7 @@ const handleImageUpload = async (e) => {
                 {formData.images && formData.images.map((img, index) => (
                   <div key={index} className="relative group">
                     <div className="aspect-square border-2 border-purple-200 rounded-lg overflow-hidden bg-gray-50">
-                      <Image 
+                      <img 
                         src={img} 
                         alt={`Product ${index + 1}`} 
                         className="w-full h-full object-cover" 
@@ -5327,11 +5355,19 @@ const handleImageUpload = async (e) => {
                 Cancel
               </button>
               <button
-                type="submit"
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
-              >
-                {product ? 'Update Product' : 'Add Product'}
-              </button>
+             type="submit"
+             disabled={isSaving}
+                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+               > 
+                   {isSaving ? (
+                    <>
+                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Saving...
+                 </>
+                  ) : (
+              product ? 'Update Product' : 'Add Product'
+                 )}
+                </button>
             </div>
           </form>
         </div>
@@ -5450,7 +5486,7 @@ const AdminOrders = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-purple-200 to-pink-200 rounded flex items-center justify-center text-xl overflow-hidden">
                         {item.images && item.images.length > 0 ? (
-                         <Image src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={48} height={48} />
+                         <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" width={48} height={48} />
                         ) : (
                          <>
                         {item.image === 'necklace' && '💍'}
@@ -6041,6 +6077,8 @@ const AppContent = () => {
       {currentPage !== 'admin' && currentPage !== 'adminlogin' && <Footer setCurrentPage={handlePageChange} />}
       <CartSidebar show={showCart} onClose={() => setShowCart(false)} setCurrentPage={handlePageChange} />
       {selectedProduct && <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />}
+        <FloatingWhatsApp />
+        <ScrollToTop />
     </div>
   );
 };
@@ -6085,6 +6123,61 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// ✅ CORRECT
+const FloatingWhatsApp = () => {
+  return (
+    <a  // Add this opening <a> tag
+      href="https://wa.me/917406778169?text=Hi%20Luxora%2C%20I%20need%20help!"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition hover:scale-110 z-40 animate-bounce"
+      title="Chat on WhatsApp"
+    >
+      <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+      </svg>
+    </a>  // Closing </a> tag
+  );
+};
+
+// Scroll to Top Button
+const ScrollToTop = () => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  React.useEffect(() => {
+    const toggleVisibility = () => {
+      if (window.pageYOffset > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    window.addEventListener('scroll', toggleVisibility);
+    return () => window.removeEventListener('scroll', toggleVisibility);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <button
+      onClick={scrollToTop}
+      className="fixed bottom-24 right-6 bg-purple-600 text-white p-3 rounded-full shadow-2xl hover:bg-purple-700 transition hover:scale-110 z-40"
+      title="Scroll to top"
+    >
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+      </svg>
+    </button>
+  );
+};
 
 export default function App() {
   console.log('App loaded!');
