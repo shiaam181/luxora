@@ -1,20 +1,16 @@
-
 import './globals.css'
 import Script from 'next/script'
 
 export const metadata = {
   title: 'Luxora - Premium Fashion & Jewelry Store India',
-  description: 'Shop elegant sarees, designer kurtis, jewelry at best prices. Free COD across India.',
+  description: 'Shop elegant sarees, designer kurtis, jewelry at best prices.',
   keywords: 'fashion, sarees, kurtis, jewelry, online shopping India, COD',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        {/* You can add other head elements here if needed */}
-      </head>
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {children}
         
         {/* Google Analytics */}
